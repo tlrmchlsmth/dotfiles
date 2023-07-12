@@ -51,7 +51,12 @@ Plug 'kyazdani42/nvim-web-devicons'
 Plug 'folke/lsp-colors.nvim'
 
 Plug 'morhetz/gruvbox'
-Plug 'ctrlpvim/ctrlp.vim'
+
+"Fuzzy file finders.
+"Plug 'ctrlpvim/ctrlp.vim' 
+Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
+Plug 'junegunn/fzf.vim'
+
 Plug 'scrooloose/nerdtree'
 Plug 'vim-airline/vim-airline'
 "Plug 'sheerun/vim-polyglot'
@@ -278,16 +283,26 @@ autocmd BufWritePre *.cc :call FormatFile()
 " Put swap files in one directory
 set directory^=$HOME/.vim/tmp/
 
+" fzf
+if getcwd() =~ $NYANN_ROOT_DIR . '/external'
+    nnoremap <leader>p :Files $NYANN_ROOT_DIR/external<CR>
+elseif getcwd() =~ $NYANN_ROOT_DIR
+    nnoremap <leader>p :Files $NYANN_ROOT_DIR/src<CR>
+else
+    nnoremap <leader>p :Files<CR>
+endif
+
 " Ctrl p stuff
-"set runtimepath^=~/.vim/plugged/ctrlp.vim
-":helptags ~/.vim/plugged/ctrlp.vim/doc
-let g:ctrlp_map = '<Leader>p'
-let g:ctrlp_cmd = 'CtrlP'
-let g:ctrlp_max_files=0
-let g:ctrlp_working_path_mode = 'ra'
-" Todo: figure out how to set this on a per-directory basis
-let g:ctrlp_custom_ignore = {
-    \ 'dir':  '\v[\/]\.(git|hg|svn)|jenkins|bin|test-data|external|generated|test-models$',
-    \ 'file': '\v\.(exe|so|dll|png|onnx)$',
-    \ 'link': 'SOME_BAD_SYMBOLIC_LINKS',
-    \ }
+" set runtimepath^=~/.vim/plugged/ctrlp.vim
+" :helptags ~/.vim/plugged/ctrlp.vim/doc
+"  let g:ctrlp_map = '<Leader>p'
+"  let g:ctrlp_cmd = 'CtrlP'
+"  let g:ctrlp_max_files=0
+"  let g:ctrlp_working_path_mode = 'ra'
+" " Todo: figure out how to set this on a per-directory basis
+"  let g:ctrlp_custom_ignore = {
+"      \ 'dir':  '\v[\/]\.(git|hg|svn)|jenkins|bin|test-data|external|generated|test-models$',
+"      \ 'file': '\v\.(exe|so|dll|png|onnx)$',
+"      \ 'link': 'SOME_BAD_SYMBOLIC_LINKS',
+"      \ }
+
