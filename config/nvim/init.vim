@@ -283,14 +283,26 @@ autocmd BufWritePre *.cc :call FormatFile()
 " Put swap files in one directory
 set directory^=$HOME/.vim/tmp/
 
-" fzf
-if getcwd() =~ $NYANN_ROOT_DIR . '/external'
-    nnoremap <leader>p :Files $NYANN_ROOT_DIR/external<CR>
-elseif getcwd() =~ $NYANN_ROOT_DIR
-    nnoremap <leader>p :Files $NYANN_ROOT_DIR/src<CR>
-else
-    nnoremap <leader>p :Files<CR>
-endif
+" Set up fuzzy file finder with nicer git repo behavior with leader p
+function! FzfFindFileInGitRoot()
+    " Find the root directory of the current Git project
+    let l:git_root = system('git rev-parse --show-toplevel 2> /dev/null')
+    let l:git_root = substitute(l:git_root, '\n\+$', '', '')
+
+    " Check if git_root was successfully found
+    if v:shell_error == 0 && !empty(l:git_root)
+        " Start fzf from the root of the Git project
+        execute 'FZF' l:git_root
+    else
+        " Fallback to the current directory if not in a Git repo
+        execute 'FZF'
+    endif
+endfunction
+
+" Bind the custom FzfFindFileInGitRoot function to a command
+command! FzfGitRoot call FzfFindFileInGitRoot()
+nnoremap <leader>p :FzfGitRoot<CR>
+
 
 " Ctrl p stuff
 " set runtimepath^=~/.vim/plugged/ctrlp.vim
