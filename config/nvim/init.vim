@@ -52,14 +52,12 @@ Plug 'folke/lsp-colors.nvim'
 
 Plug 'morhetz/gruvbox'
 
-"Fuzzy file finders.
-"Plug 'ctrlpvim/ctrlp.vim' 
+"Fuzzy file finder.
 Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
 Plug 'junegunn/fzf.vim'
 
 Plug 'scrooloose/nerdtree'
 Plug 'vim-airline/vim-airline'
-"Plug 'sheerun/vim-polyglot'
 call plug#end()
 
 "more results in ctrlp
@@ -268,7 +266,7 @@ set tags=./tags;/
 map <C-F12> :!ctags -R --sort=yes --c++-kinds=+p --fields=+iaS --extra=+q .<CR>
 
 "Autoformat using cntl-k with clang format
-function! FormatFile()
+function! FormatCppFile()
   let l:lines="all"
   :py3f /home/tms/.local/share/nvim/clang-format.py
 endfunction
@@ -276,9 +274,10 @@ map <C-k> :call FormatFile()<cr>
 imap <C-k> <c-o>:call FormatFile()<cr>
 
 "Automatically call Clang format when saving
-autocmd BufWritePre *.cpp :call FormatFile()
-autocmd BufWritePre *.hpp :call FormatFile()
-autocmd BufWritePre *.cc :call FormatFile()
+autocmd BufWritePre *.cpp :call FormatCppFile()
+autocmd BufWritePre *.hpp :call FormatCppFile()
+autocmd BufWritePre *.cc :call FormatCppFile()
+autocmd BufWritePre *.cu :call FormatCppFile()
 
 " Put swap files in one directory
 set directory^=$HOME/.vim/tmp/
@@ -289,13 +288,18 @@ function! FzfFindFileInGitRoot()
     let l:git_root = system('git rev-parse --show-toplevel 2> /dev/null')
     let l:git_root = substitute(l:git_root, '\n\+$', '', '')
 
+    " Define a list of directories to ignore
+    let l:ignore_dirs = ['venv']
+    let l:rg_ignore = join(map(copy(l:ignore_dirs), '"--glob !".v:val'), ' ')
+
     " Check if git_root was successfully found
     if v:shell_error == 0 && !empty(l:git_root)
         " Start fzf from the root of the Git project
-        execute 'FZF' l:git_root
+        call fzf#run(fzf#wrap({'source': 'rg --files '.l:rg_ignore, 'dir': l:git_root}))
     else
         " Fallback to the current directory if not in a Git repo
-        execute 'FZF'
+        call fzf#run(fzf#wrap({'source': 'rg --files '.l:rg_ignore}))
+"        execute 'FZF'
     endif
 endfunction
 
@@ -304,17 +308,30 @@ command! FzfGitRoot call FzfFindFileInGitRoot()
 nnoremap <leader>p :FzfGitRoot<CR>
 
 
-" Ctrl p stuff
-" set runtimepath^=~/.vim/plugged/ctrlp.vim
-" :helptags ~/.vim/plugged/ctrlp.vim/doc
-"  let g:ctrlp_map = '<Leader>p'
-"  let g:ctrlp_cmd = 'CtrlP'
-"  let g:ctrlp_max_files=0
-"  let g:ctrlp_working_path_mode = 'ra'
-" " Todo: figure out how to set this on a per-directory basis
-"  let g:ctrlp_custom_ignore = {
-"      \ 'dir':  '\v[\/]\.(git|hg|svn)|jenkins|bin|test-data|external|generated|test-models$',
-"      \ 'file': '\v\.(exe|so|dll|png|onnx)$',
-"      \ 'link': 'SOME_BAD_SYMBOLIC_LINKS',
-"      \ }
+function! RandomPerturbColor()
+    " Get the current background color
+    let l:current_bg = synIDattr(hlID('Normal'), 'bg#')
+    if l:current_bg == ""
+        echo "No background color is set"
+        return
+    endif
 
+    " Convert hex to RGB
+    let l:R = str2nr(strpart(l:current_bg, 1, 2), 16)
+    let l:G = str2nr(strpart(l:current_bg, 3, 2), 16)
+    let l:B = str2nr(strpart(l:current_bg, 5, 2), 16)
+
+    " Apply a random perturbation between -15 and 15 to each RGB component
+    let l:R = min([255, max([0, l:R + rand() % 31 - 15])])
+    let l:G = min([255, max([0, l:G + rand() % 31 - 15])])
+    let l:B = min([255, max([0, l:B + rand() % 31 - 15])])
+
+    " Convert RGB back to hex
+    let l:new_bg = printf('#%02x%02x%02x', l:R, l:G, l:B)
+
+    " Set the new background color
+    exec 'highlight Normal guibg=' . l:new_bg
+endfunction
+
+" Call the function to apply changes
+call RandomPerturbColor()

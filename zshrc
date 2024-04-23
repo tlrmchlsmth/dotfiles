@@ -124,20 +124,9 @@ fi
 
 alias make=safemake.sh
 
-#NYANN env variables
-export NYANN_ROOT_DIR=/home/tms/code/wand
-export NYANN_BIN_DIR=$NYANN_ROOT_DIR/bin
-export NYANN_DATA_DIR=$NYANN_ROOT_DIR/test-data
-export NYANN_OUT_DIR=/dev/null
-export PATH="$PATH:$NYANN_ROOT_DIR/tools"
-
 #NYANN options
 export COMPILER=clang++
 export USE_LINKER=mold
-export NM_LOGGING_LEVEL=4
-export LOGGING_LEVEL=0
-export NM_VERSION_CHECK=false
-export NM_BIND_THREADS_TO_CORES=1
 
 cwd=$PWD
 cd $NYANN_ROOT_DIR
@@ -145,28 +134,25 @@ cd $NYANN_ROOT_DIR
 cd $cwd
 
 #BOOST env variables
-export LD_LIBRARY_PATH=$HOME/.local/lib:$LD_LIBRARY_PATH
-export LIBRARY_PATH=$HOME/.local/lib:$LIBRARY_PATH
-export CPLUS_INCLUDE_PATH=$HOME/.local/include:$CPLUS_INCLUDE_PATH
-export CPLUS_INCLUDE_PATH=$HOME/code/wand/external/boost/include:$CPLUS_INCLUDE_PATH
+#export LD_LIBRARY_PATH=$HOME/.local/lib:$LD_LIBRARY_PATH
+#export LIBRARY_PATH=$HOME/.local/lib:$LIBRARY_PATH
+#export CPLUS_INCLUDE_PATH=$HOME/.local/include:$CPLUS_INCLUDE_PATH
+#export CPLUS_INCLUDE_PATH=$HOME/code/wand/external/boost/include:$CPLUS_INCLUDE_PATH
 
 #Building engine faster
 #export CCACHE_COMPILER_DIR=/usr/lib/ccache
 #export USE_LINKER=lld
 
-
-export PATH=$HOME/.local/bin:$PATH
-export PATH=$HOME/.local/arcanist/bin:$PATH
-
 #export PYTHONPATH=$HOME/code/neuralmagicml-pytorch:$HOME/code/neuralmagic-base:$PYTHONPATH
+export PATH=$HOME/.local/bin:$PATH
+
+export CUDA_HOME=/usr/local/cuda
+export CUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME
+export PATH=$PATH:$CUDA_HOME/bin
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CUDA_HOME/lib64
+export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:$CUDA_HOME/include
 
 export TERM=screen-256color-bce
-
-export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH"
-
-#some ruby stuff
-export GEM_HOME="$HOME/gems"
-export PATH="$HOME/gems/bin:$PATH"
 
 #alacritty autocomplete stuff
 fpath+=~/.config/zsh/.zsh_functions
