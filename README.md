@@ -47,3 +47,7 @@ wget -P $HOME/.local/bin https://github.com/neovim/neovim/releases/download/nigh
 chmox +x $HOME/.local/bin/nvim.appimage
 ln -s $HOME/.local/bin/nvim.appimage $HOME/.local/bin/nvim
 ```
+### Others
+```
+sudo apt install ripgrep
+```
