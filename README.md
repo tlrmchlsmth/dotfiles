@@ -43,7 +43,7 @@ cp -r ./config/* $HOME/.config/
 ## Installation
 ### Neovim
 ```console
-wget -P $HOME/.local/bin https://github.com/neovim/neovim/releases/download/nightly/nvim.appimage
+wget -P $HOME/.local/bin https://github.com/neovim/neovim/releases/download/stable/nvim.appimage
 chmox +x $HOME/.local/bin/nvim.appimage
 ln -s $HOME/.local/bin/nvim.appimage $HOME/.local/bin/nvim
 ```
