@@ -51,3 +51,15 @@ ln -s $HOME/.local/bin/nvim.appimage $HOME/.local/bin/nvim
 ```
 sudo apt install ripgrep
 ```
+
+## Huggingface CLI
+First install the huggingface hub cli
+```console
+pip3 install -U "huggingface_hub[cli]"
+```
+Then create a new token and log in.
+
+https://huggingface.co/settings/tokens
+```console
+huggingface-cli login --token <your token>
+```
