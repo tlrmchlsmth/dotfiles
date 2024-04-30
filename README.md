@@ -51,6 +51,9 @@ ln -s $HOME/.local/bin/nvim.appimage $HOME/.local/bin/nvim
 ```
 sudo apt install ripgrep
 ```
+```
+pip install -U pynvim
+```
 
 ## Huggingface CLI
 First install the huggingface hub cli
