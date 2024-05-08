@@ -231,9 +231,10 @@ set shortmess+=c
 set updatetime=100
 set cmdheight=2
 nmap K <Nop>
-if has("nvim")
-    set inccommand=nosplit
-endif
+set inccommand=nosplit
+
+" Turn off neovim's use of the mouse, so that we can copy with command-c
+set mouse=
 
 "search for visually selected text
 vnoremap // y/\V<C-R>=escape(@",'/\')<CR><CR>
