@@ -9,7 +9,7 @@ ln -s $HOME/.local/bin/nvim.appimage $HOME/.local/bin/nvim
 ```
 ### Others
 ```
-sudo apt install ripgrep zsh
+sudo apt -y install ripgrep zsh python3-pip
 ```
 ```
 pip install -U pynvim
