@@ -12,7 +12,7 @@ wget -P $HOME/.local/bin https://github.com/neovim/neovim/releases/download/stab
 ```
 ### Others
 ```
-sudo apt -y install ripgrep zsh python3-pip fuse
+sudo apt install -y ripgrep zsh python3-pip fuse
 ```
 ```
 pip install -U pynvim
@@ -33,13 +33,15 @@ Log into Github:
 
 https://github.com/settings/tokens/new
 ```console
-echo <your_token> | gh auth login --with-token
+echo <your_token> | gh auth login --with-token \
+&& gh auth setup-git
 ```
+Note: not sure if `gh auth setup-git works` 
 
 ## Clone this repo and install dotfiles
 ```console
-git clone https://github.com/tlrmchlsmth/dotfiles
-cd dotfiles
+git clone https://github.com/tlrmchlsmth/dotfiles \
+&& cd dotfiles
 ```
 
 Install oh my zsh (and let it change your default shell)
@@ -53,8 +55,8 @@ git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-m
 ```
 Copy dotfiles:
 ```console
-cp ./zshrc $HOME/.zshrc
-cp -r ./config/* $HOME/.config/
+cp ./zshrc $HOME/.zshrc \
+&& cp -r ./config/* $HOME/.config/
 ```
 
 ## Huggingface CLI
