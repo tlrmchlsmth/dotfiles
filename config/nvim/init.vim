@@ -269,16 +269,10 @@ map <C-F12> :!ctags -R --sort=yes --c++-kinds=+p --fields=+iaS --extra=+q .<CR>
 "Autoformat using cntl-k with clang format
 function! FormatCppFile()
   let l:lines="all"
-  :py3f /home/tms/.local/share/nvim/clang-format.py
+  :py3f $HOME/.local/share/nvim/clang-format.py
 endfunction
-map <C-k> :call FormatFile()<cr>
-imap <C-k> <c-o>:call FormatFile()<cr>
-
-"Automatically call Clang format when saving
-autocmd BufWritePre *.cpp :call FormatCppFile()
-autocmd BufWritePre *.hpp :call FormatCppFile()
-autocmd BufWritePre *.cc :call FormatCppFile()
-autocmd BufWritePre *.cu :call FormatCppFile()
+map <C-k> :call FormatCppFile()<cr>
+imap <C-k> <c-o>:call FormatCppFile()<cr>
 
 " Put swap files in one directory
 set directory^=$HOME/.vim/tmp/

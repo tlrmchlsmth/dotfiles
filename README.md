@@ -56,7 +56,8 @@ git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-m
 Copy dotfiles:
 ```console
 cp ./zshrc $HOME/.zshrc \
-&& cp -r ./config/* $HOME/.config/
+&& cp -r ./config/* $HOME/.config/ \
+&& cp -r ./local/* $HOME/.local/
 ```
 
 ## Huggingface CLI
