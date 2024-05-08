@@ -1,5 +1,20 @@
 # Setup on Ubuntu 22.04
 
+## Installation
+### Neovim
+```console
+wget -P $HOME/.local/bin https://github.com/neovim/neovim/releases/download/stable/nvim.appimage
+chmox +x $HOME/.local/bin/nvim.appimage
+ln -s $HOME/.local/bin/nvim.appimage $HOME/.local/bin/nvim
+```
+### Others
+```
+sudo apt install ripgrep zsh
+```
+```
+pip install -U pynvim
+```
+
 ## Install Github CLI
 ```console
 (type -p wget >/dev/null || (sudo apt update && sudo apt-get install wget -y)) \
@@ -38,21 +53,6 @@ Copy dotfiles:
 mkdir -p $HOME/.local/bin $HOME/.local/lib $HOME/.config/nvim
 cp ./zshrc $HOME/.zshrc
 cp -r ./config/* $HOME/.config/
-```
-
-## Installation
-### Neovim
-```console
-wget -P $HOME/.local/bin https://github.com/neovim/neovim/releases/download/stable/nvim.appimage
-chmox +x $HOME/.local/bin/nvim.appimage
-ln -s $HOME/.local/bin/nvim.appimage $HOME/.local/bin/nvim
-```
-### Others
-```
-sudo apt install ripgrep
-```
-```
-pip install -U pynvim
 ```
 
 ## Huggingface CLI
