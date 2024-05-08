@@ -1,11 +1,14 @@
 # Setup on Ubuntu 22.04
 
 ## Installation
+```
+mkdir -p $HOME/.local/bin $HOME/.local/lib $HOME/.config/nvim
+```
 ### Neovim
 ```console
-wget -P $HOME/.local/bin https://github.com/neovim/neovim/releases/download/stable/nvim.appimage
-chmox +x $HOME/.local/bin/nvim.appimage
-ln -s $HOME/.local/bin/nvim.appimage $HOME/.local/bin/nvim
+wget -P $HOME/.local/bin https://github.com/neovim/neovim/releases/download/stable/nvim.appimage \
+&& chmod +x $HOME/.local/bin/nvim.appimage \
+&& ln -s $HOME/.local/bin/nvim.appimage $HOME/.local/bin/nvim
 ```
 ### Others
 ```
@@ -50,7 +53,6 @@ git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-m
 ```
 Copy dotfiles:
 ```console
-mkdir -p $HOME/.local/bin $HOME/.local/lib $HOME/.config/nvim
 cp ./zshrc $HOME/.zshrc
 cp -r ./config/* $HOME/.config/
 ```
