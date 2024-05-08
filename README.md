@@ -12,7 +12,7 @@ wget -P $HOME/.local/bin https://github.com/neovim/neovim/releases/download/stab
 ```
 ### Others
 ```
-sudo apt install -y ripgrep zsh python3-pip fuse
+sudo apt install -y ripgrep zsh fuse  python3-pip python3-venv 
 ```
 ```
 pip install -U pynvim
@@ -37,6 +37,13 @@ echo <your_token> | gh auth login --with-token \
 && gh auth setup-git
 ```
 Note: not sure if `gh auth setup-git works` 
+
+## Configure Git
+```console
+git config --global user.email "tyler@neuralmagic.com" \
+&& git config --global user.name "Tyler Michael Smith" \
+&& git config pull.rebase false 
+```
 
 ## Clone this repo and install dotfiles
 ```console
