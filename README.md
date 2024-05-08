@@ -1,5 +1,23 @@
 # Setup on Ubuntu 22.04
 
+## Installation
+```
+mkdir -p $HOME/.local/bin $HOME/.local/lib $HOME/.config/nvim
+```
+### Neovim
+```console
+wget -P $HOME/.local/bin https://github.com/neovim/neovim/releases/download/stable/nvim.appimage \
+&& chmod +x $HOME/.local/bin/nvim.appimage \
+&& ln -s $HOME/.local/bin/nvim.appimage $HOME/.local/bin/nvim
+```
+### Others
+```
+sudo apt install -y ripgrep zsh python3-pip fuse
+```
+```
+pip install -U pynvim
+```
+
 ## Install Github CLI
 ```console
 (type -p wget >/dev/null || (sudo apt update && sudo apt-get install wget -y)) \
@@ -15,13 +33,15 @@ Log into Github:
 
 https://github.com/settings/tokens/new
 ```console
-echo <your_token> | gh auth login --with-token
+echo <your_token> | gh auth login --with-token \
+&& gh auth setup-git
 ```
+Note: not sure if `gh auth setup-git works` 
 
 ## Clone this repo and install dotfiles
 ```console
-git clone https://github.com/tlrmchlsmth/dotfiles
-cd dotfiles
+git clone https://github.com/tlrmchlsmth/dotfiles \
+&& cd dotfiles
 ```
 
 Install oh my zsh (and let it change your default shell)
@@ -35,24 +55,8 @@ git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-m
 ```
 Copy dotfiles:
 ```console
-mkdir -p $HOME/.local/bin $HOME/.local/lib $HOME/.config/nvim
-cp ./zshrc $HOME/.zshrc
-cp -r ./config/* $HOME/.config/
-```
-
-## Installation
-### Neovim
-```console
-wget -P $HOME/.local/bin https://github.com/neovim/neovim/releases/download/stable/nvim.appimage
-chmox +x $HOME/.local/bin/nvim.appimage
-ln -s $HOME/.local/bin/nvim.appimage $HOME/.local/bin/nvim
-```
-### Others
-```
-sudo apt install ripgrep
-```
-```
-pip install -U pynvim
+cp ./zshrc $HOME/.zshrc \
+&& cp -r ./config/* $HOME/.config/
 ```
 
 ## Huggingface CLI
