@@ -38,6 +38,13 @@ echo <your_token> | gh auth login --with-token \
 ```
 Note: not sure if `gh auth setup-git works` 
 
+## Configure Git
+```console
+git config --global user.email "tyler@neuralmagic.com" \
+&& git config --global user.name "Tyler Michael Smith" \
+&& git config pull.rebase false 
+```
+
 ## Clone this repo and install dotfiles
 ```console
 git clone https://github.com/tlrmchlsmth/dotfiles \
