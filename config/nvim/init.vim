@@ -316,10 +316,10 @@ function! RandomPerturbColor()
     let l:G = str2nr(strpart(l:current_bg, 3, 2), 16)
     let l:B = str2nr(strpart(l:current_bg, 5, 2), 16)
 
-    " Apply a random perturbation between -15 and 15 to each RGB component
-    let l:R = min([255, max([0, l:R + rand() % 31 - 15])])
-    let l:G = min([255, max([0, l:G + rand() % 31 - 15])])
-    let l:B = min([255, max([0, l:B + rand() % 31 - 15])])
+    " Apply a random perturbation between -4 and 4 to each RGB component
+    let l:R = min([255, max([0, l:R + rand() % 8 - 4])])
+    let l:G = min([255, max([0, l:G + rand() % 8 - 4])])
+    let l:B = min([255, max([0, l:B + rand() % 8 - 4])])
 
     " Convert RGB back to hex
     let l:new_bg = printf('#%02x%02x%02x', l:R, l:G, l:B)
