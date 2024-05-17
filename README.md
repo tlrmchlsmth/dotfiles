@@ -36,14 +36,7 @@ https://github.com/settings/tokens/new
 echo <your_token> | gh auth login --with-token \
 && gh auth setup-git
 ```
-Note: not sure if `gh auth setup-git works` 
 
-## Configure Git
-```console
-git config --global user.email "tyler@neuralmagic.com" \
-&& git config --global user.name "Tyler Michael Smith" \
-&& git config pull.rebase false 
-```
 
 ## Clone this repo and install dotfiles
 ```console
@@ -65,6 +58,13 @@ Copy dotfiles:
 cp ./zshrc $HOME/.zshrc \
 && cp -r ./config/* $HOME/.config/ \
 && cp -r ./local/* $HOME/.local/
+```
+
+## Configure Git
+```console
+git config --global user.email "tyler@neuralmagic.com" \
+&& git config --global user.name "Tyler Michael Smith" \
+&& git config pull.rebase false 
 ```
 
 ## Huggingface CLI
