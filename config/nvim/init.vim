@@ -1,4 +1,4 @@
-" Use Vim settings, rather then Vi settings (much better!).
+" Use Vim settings, rather then Vi settings
 " This must be first, because it changes other options as a side effect.
 set nocompatible
 
@@ -253,7 +253,16 @@ nmap gk <C-w>k
 nmap gl <C-w>l
 nmap gw <C-w>w
 
-" Don't use control for shit
+" Tab Navigation
+noremap <Leader>tn :tabnew<CR>
+noremap <Leader>tl :tabnext<CR>
+noremap <Leader>th :tabprevious<CR>
+for i in range(0, 9)
+    " <Leader>tN switches to tab N
+    execute 'noremap <Leader>t' . i . ' :tabnext ' . i . '<CR>'
+endfor
+
+" Don't use ctrl
 map <Leader>f <C-d>
 map <Leader>b <C-u>
 map <C-f> <Nop>
