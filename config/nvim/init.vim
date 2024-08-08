@@ -286,8 +286,7 @@ imap <C-k> <c-o>:call FormatCppFile()<cr>
 " Put swap files in one directory
 set directory^=$HOME/.vim/tmp/
 
-" Set up fuzzy file finder with nicer git repo behavior with leader p
-function! FzfFindFileInGitRoot()
+function! FzfFindFromGitRoot(file_name)
     " Find the root directory of the current Git project
     let l:git_root = system('git rev-parse --show-toplevel 2> /dev/null')
     let l:git_root = substitute(l:git_root, '\n\+$', '', '')
@@ -296,21 +295,74 @@ function! FzfFindFileInGitRoot()
     let l:ignore_dirs = ['venv']
     let l:rg_ignore = join(map(copy(l:ignore_dirs), '"--glob !".v:val'), ' ')
 
+    " Prepare the base command
+    let l:rg_base_command = 'rg --line-number --no-heading --smart-case '
+
     " Check if git_root was successfully found
     if v:shell_error == 0 && !empty(l:git_root)
-        " Start fzf from the root of the Git project
-        call fzf#run(fzf#wrap({'source': 'rg --files '.l:rg_ignore, 'dir': l:git_root}))
+        " Use git root as the search directory
+        let l:search_dir = l:git_root
     else
         " Fallback to the current directory if not in a Git repo
-        call fzf#run(fzf#wrap({'source': 'rg --files '.l:rg_ignore}))
-"        execute 'FZF'
+        let l:search_dir = getcwd()
     endif
+
+    " Set up the FZF command
+    if a:file_name
+        let l:fzf_command = l:rg_base_command . '--files ' . l:rg_ignore . ' ' . fnameescape(l:search_dir)
+    else
+        let l:fzf_command = l:rg_base_command . l:rg_ignore . ' . ' . fnameescape(l:search_dir)
+    endif
+
+    " Capture a:file_name in a closure
+    let l:is_filename_search = a:file_name
+
+    " Set up the sink function to handle the selected item
+    function! s:fzf_handler(item) closure
+        if l:is_filename_search
+            " For file name search, just open the file
+            let l:file_path = fnamemodify(a:item, ':p')
+            execute 'edit' fnameescape(l:file_path)
+        else
+            " For content search, parse the line number and file path
+            let l:parts = split(a:item, ':')
+            if len(l:parts) >= 3
+                let l:file_path = l:parts[0]
+                let l:line_number = l:parts[1]
+                " Ensure we have an absolute path
+                if !fnamemodify(l:file_path, ':p') =~# '^/'
+                    let l:file_path = l:search_dir . '/' . l:file_path
+                endif
+                let l:full_path = fnamemodify(l:file_path, ':p')
+                execute 'edit +'.l:line_number fnameescape(l:full_path)
+            else
+                echoerr "Invalid selection format"
+            endif
+        endif
+    endfunction
+
+    " Set up FZF options
+    let l:fzf_options = {
+    \ 'source': l:fzf_command,
+    \ 'sink': function('s:fzf_handler'),
+    \ 'options': ['--ansi', '--prompt', '> '],
+    \ 'dir': l:search_dir,
+    \ }
+
+    " Add preview window for file content search
+    if !l:is_filename_search
+        let l:fzf_options.options += ['--delimiter', ':', '--preview', 'batcat --style=numbers --color=always --highlight-line {2} {1}', '--preview-window', '+{2}-/2']
+    endif
+
+    " Run FZF
+    call fzf#run(fzf#wrap(l:fzf_options))
 endfunction
 
-" Bind the custom FzfFindFileInGitRoot function to a command
-command! FzfGitRoot call FzfFindFileInGitRoot()
-nnoremap <leader>p :FzfGitRoot<CR>
-
+" Bind the custom FzfFindFromGitRoot function to commands
+command! FzfGitRootFileName call FzfFindFromGitRoot(1)
+command! FzfGitRootFileContent call FzfFindFromGitRoot(0)
+nnoremap <leader>p :FzfGitRootFileName<CR>
+nnoremap <leader>g :FzfGitRootFileContent<CR>
 
 function! RandomPerturbColor()
     " Get the current background color
