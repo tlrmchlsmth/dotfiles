@@ -12,7 +12,7 @@ wget -P $HOME/.local/bin https://github.com/neovim/neovim/releases/download/stab
 ```
 ### Others
 ```
-sudo apt install -y ripgrep zsh fuse clangd python3-pip python3-venv 
+sudo apt install -y ripgrep bat zsh fuse clangd python3-pip python3-venv
 ```
 ```
 pip install -U pynvim
