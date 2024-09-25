@@ -209,7 +209,7 @@ autocmd FileType json syntax match Comment +\/\/.\+$+
 set incsearch
 set nohlsearch
 set lazyredraw "Makes macros run faster
-set tabstop=4 shiftwidth=4 expandtab
+set tabstop=2 shiftwidth=2 expandtab
 filetype plugin indent on
 syntax enable
 set backspace=indent,eol,start
