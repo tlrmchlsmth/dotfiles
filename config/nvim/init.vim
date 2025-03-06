@@ -390,4 +390,4 @@ function! RandomPerturbColor()
 endfunction
 
 " Call the function to apply changes
-call RandomPerturbColor()
+" call RandomPerturbColor()
