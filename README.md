@@ -6,9 +6,9 @@ mkdir -p $HOME/.local/bin $HOME/.local/lib $HOME/.config/nvim
 ```
 ### Neovim
 ```console
-wget -P $HOME/.local/bin https://github.com/neovim/neovim/releases/download/v0.10.4/nvim-linux-x86_64.appimage \
-&& chmod +x $HOME/.local/bin/nvim.appimage \
-&& ln -s $HOME/.local/bin/nvim.appimage $HOME/.local/bin/nvim
+wget -P $HOME/.local/bin https://github.com/neovim/neovim/releases/download/stable/nvim-linux-x86_64.appimage \
+&& chmod +x $HOME/.local/bin/nvim-linux-x86_64.appimage \
+&& ln -s $HOME/.local/bin/nvim-linux-x86_64.appimage $HOME/.local/bin/nvim
 ```
 ### Others
 ```
