@@ -62,7 +62,7 @@ cp ./zshrc $HOME/.zshrc \
 
 ## Configure Git
 ```console
-git config --global user.email "tyler@neuralmagic.com" \
+git config --global user.email "tysmith@redhat.com" \
 && git config --global user.name "Tyler Michael Smith" \
 && git config pull.rebase false 
 ```
