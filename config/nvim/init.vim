@@ -58,7 +58,15 @@ Plug 'junegunn/fzf.vim'
 
 Plug 'scrooloose/nerdtree'
 Plug 'vim-airline/vim-airline'
+
+Plug 'ojroques/vim-oscyank', {'branch': 'main'}
 call plug#end()
+
+
+" Copy and paste over ssh with OSC52
+nmap <leader>c <Plug>OSCYankOperator
+nmap <leader>cc <leader>c_
+vmap <leader>c <Plug>OSCYankVisual
 
 "more results in ctrlp
 let g:ctrlp_match_window = 'results:50'
