@@ -124,26 +124,6 @@ fi
 
 alias make=safemake.sh
 
-#NYANN options
-export COMPILER=clang++
-export USE_LINKER=mold
-
-cwd=$PWD
-cd $NYANN_ROOT_DIR
-#source integration/nm_test/nm_test_env.sh avx512 > /dev/null
-cd $cwd
-
-#BOOST env variables
-#export LD_LIBRARY_PATH=$HOME/.local/lib:$LD_LIBRARY_PATH
-#export LIBRARY_PATH=$HOME/.local/lib:$LIBRARY_PATH
-#export CPLUS_INCLUDE_PATH=$HOME/.local/include:$CPLUS_INCLUDE_PATH
-#export CPLUS_INCLUDE_PATH=$HOME/code/wand/external/boost/include:$CPLUS_INCLUDE_PATH
-
-#Building engine faster
-#export CCACHE_COMPILER_DIR=/usr/lib/ccache
-#export USE_LINKER=lld
-
-#export PYTHONPATH=$HOME/code/neuralmagicml-pytorch:$HOME/code/neuralmagic-base:$PYTHONPATH
 export PATH=$HOME/.local/bin:$PATH
 
 export CUDA_HOME=/usr/local/cuda
