@@ -8,15 +8,25 @@ opt.clipboard = 'unnamedplus' -- Use system clipboard (recommended)
 opt.swapfile = false -- Consider disabling swapfile if using modern fs/git
 opt.backup = false -- Disable backup files
 opt.undofile = true -- Enable persistent undo
-opt.undodir = vim.fn.stdpath('data') .. '/undodir' -- Set undo directory
-vim.fn.mkdir(opt.undodir:get(), 'p') -- Create undodir if it doesn't exist
 
-opt.directory = vim.fn.stdpath('data') .. '/swap//' -- Centralized swap files (double slash matters)
-vim.fn.mkdir(opt.directory:get(), 'p', 0700) -- Create swapdir
+-- Construct the path as a Lua string
+local undodir_path = vim.fn.stdpath('data') .. '/undodir'
+opt.undodir = undodir_path -- Set the Neovim option
+if vim.fn.isdirectory(undodir_path) == 0 then -- Check if directory exists
+  vim.fn.mkdir(undodir_path, 'p') -- Create undodir if it doesn't exist using the string path
+end
+
+-- Construct the path as a Lua string
+local swapdir_path = vim.fn.stdpath('data') .. '/swap//' -- Centralized swap files (double slash matters)
+opt.directory = swapdir_path -- Set the Neovim option
+if vim.fn.isdirectory(swapdir_path) == 0 then -- Check if directory exists
+  vim.fn.mkdir(swapdir_path, 'p', 0700) -- Create swapdir using the string path, with permissions
+end
+
 
 -- Appearance
 opt.number = true -- Show line numbers
-opt.relativenumber = true -- Show relative line numbers (optional, common preference)
+-- opt.relativenumber = true -- Show relative line numbers (optional, common preference)
 opt.cursorline = true -- Highlight the current line
 opt.termguicolors = true -- Enable true color support (Required for many themes)
 opt.background = 'dark' -- Set background (gruvbox might override this)
@@ -76,5 +86,3 @@ vim.filetype.add({
 vim.defer_fn(function()
   vim.opt.laststatus = 3
 end, 100) -- Defer setting laststatus to ensure plugins like lualine take over correctly
-
-print('Core options loaded')

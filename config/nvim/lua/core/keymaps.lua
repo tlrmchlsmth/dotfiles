@@ -3,8 +3,6 @@
 local map = vim.keymap.set
 local opts = { noremap = true, silent = true } -- Default options for most mappings
 
-print('Loading keymaps...')
-
 -- Leader Key is set in init.lua (vim.g.mapleader = ',')
 
 -- Normal Mode Mappings
@@ -72,9 +70,7 @@ map({'n', 'v'}, '<C-k>', function()
 
   if format_supported then
     vim.lsp.buf.format({ async = true })
-    print("LSP formatting triggered.")
   else
-    print("No active LSP client supports formatting for this buffer.")
     -- Alternative: Try conform.nvim if installed
     -- if require('conform') then require('conform').format({ async = true }) end
   end
@@ -90,5 +86,3 @@ map('v', '//', 'y/\\V<C-R>"<CR>', { noremap = true, silent = false, desc = 'Sear
 -- C++/Header switching (moved to utils and called from here)
 map('n', '<Leader>c', function() require('utils.file_switch').switch_cpp_header('cpp') end, { desc = 'Switch to C++ Source' })
 map('n', '<Leader>h', function() require('utils.file_switch').switch_cpp_header('hpp') end, { desc = 'Switch to C++ Header' })
-
-print('Keymaps loaded')

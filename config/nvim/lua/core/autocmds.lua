@@ -45,27 +45,4 @@ api.nvim_create_autocmd('FileType', {
     desc = "Allow // comments in JSON"
 })
 
--- Auto format on save (Optional, requires LSP or formatter plugin setup)
--- api.nvim_create_autocmd("BufWritePre", {
---   pattern = {"*.c", "*.cpp", "*.h", "*.hpp", "*.lua", "*.py", "*.rs"}, -- Add relevant file types
---   callback = function(args)
---     -- Check if LSP formatting is available for the buffer
---     local format_clients = {}
---     for _, client in ipairs(vim.lsp.get_active_clients({ bufnr = args.buf })) do
---       if client.supports_method("textDocument/formatting") then
---         table.insert(format_clients, client.name)
---       end
---     end
---
---     if #format_clients > 0 then
---        print("Formatting with: " .. table.concat(format_clients, ", "))
---        vim.lsp.buf.format({ bufnr = args.buf, async = false, timeout_ms = 2000 }) -- Use sync format on save
---     else
---        print("No LSP formatter found for this buffer.")
---        -- Alternatively, call conform.nvim or null-ls formatter here
---     end
---   end,
---   desc = "Auto format C/C++/Lua/Python/Rust files on save",
--- })
-
 print('Autocommands loaded')
