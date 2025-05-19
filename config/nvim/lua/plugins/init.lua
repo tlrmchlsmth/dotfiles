@@ -104,70 +104,67 @@ return {
         vim.notify("[Mason] Setup complete.", vim.log.levels.INFO, {title = "Plugin Setup"})
       end
     end,
-  }, 
-  
-    {
+  },
+
+    -- ========== Mason and LSP Setup ==========
+  {
     'williamboman/mason.nvim',
     build = ":MasonUpdate",
-    event = "VeryLazy", -- This setup was good
+    event = "VeryLazy", -- Ensures Mason is set up early and available.
     config = function()
-      vim.notify("[Mason] Attempting setup...", vim.log.levels.INFO, {title = "Plugin Setup"})
-      local status_ok, res = pcall(require("mason").setup, {
+      require("mason").setup({
         ui = {
           border = "rounded",
           icons = { package_installed = "✓", package_pending = "➜", package_uninstalled = "✗" }
         }
       })
-      if not status_ok then
-        vim.notify("[Mason] ERROR setting up: " .. tostring(res), vim.log.levels.ERROR, {title = "Plugin Error"})
-      else
-        vim.notify("[Mason] Setup complete.", vim.log.levels.INFO, {title = "Plugin Setup"})
-      end
+      -- You can add a vim.notify here if you like to confirm Mason setup, e.g.:
+      -- vim.notify("Mason setup complete.", vim.log.levels.INFO, {title = "Plugins"})
     end,
   },
 
   {
     'williamboman/mason-lspconfig.nvim',
     dependencies = {'williamboman/mason.nvim'},
-    -- This plugin will now handle the primary setup of LSPs via its 'handlers'.
-    -- It should be triggered appropriately, often by nvim-lspconfig's events or by being a dependency.
-    -- For safety, you can give it an event too, or rely on nvim-lspconfig pulling it in.
-    event = "BufReadPre", -- Or let nvim-lspconfig trigger its load as a dependency
+    -- No explicit event needed here if nvim-lspconfig (which depends on this)
+    -- is triggered by an event like "BufReadPre". Lazy.nvim will handle the load order.
     config = function()
-      vim.notify("[MasonLspconfig] Attempting setup with direct handlers...", vim.log.levels.INFO, {title = "Plugin Setup"})
-
-      -- Define on_attach and capabilities INSIDE this config, or ensure they are accessible from an outer scope
+      -- Define on_attach and capabilities here, or make them accessible from an outer scope.
       local capabilities = vim.lsp.protocol.make_client_capabilities()
-      -- If you use nvim-cmp, you would integrate its capabilities here:
+      -- If you use nvim-cmp for completion, integrate its capabilities:
       -- capabilities = require('cmp_nvim_lsp').default_capabilities(capabilities)
 
       local on_attach = function(client, bufnr)
-        vim.notify("LSP attached: " .. client.name .. " to buffer " .. bufnr, vim.log.levels.INFO, {title = "LSP"})
+        -- Optional: Notify which LSP client attached to which buffer.
+        vim.notify("LSP attached: " .. client.name .. " to buffer " .. bufnr, vim.log.levels.INFO, { title = "LSP" })
+
         local map = vim.keymap.set
-        local lsp_opts = { noremap=true, silent=true, buffer=bufnr }
-        map('n', 'gD', '<cmd>lua vim.lsp.buf.declaration()<CR>', lsp_opts)
-        map('n', 'gd', '<cmd>lua vim.lsp.buf.definition()<CR>', lsp_opts)
-        map('n', 'K', '<cmd>lua vim.lsp.buf.hover()<CR>', lsp_opts)
-        map('n', 'gi', '<cmd>lua vim.lsp.buf.implementation()<CR>', lsp_opts)
-        map('n', '<leader>sh', '<cmd>lua vim.lsp.buf.signature_help()<CR>', lsp_opts)
-        map('n', '<leader>wa', '<cmd>lua vim.lsp.buf.add_workspace_folder()<CR>', lsp_opts)
-        map('n', '<leader>wr', '<cmd>lua vim.lsp.buf.remove_workspace_folder()<CR>', lsp_opts)
-        map('n', '<leader>wl', '<cmd>lua print(vim.inspect(vim.lsp.buf.list_workspace_folders()))<CR>', lsp_opts)
-        map('n', '<leader>D', '<cmd>lua vim.lsp.buf.type_definition()<CR>', lsp_opts)
-        map('n', '<leader>rn', '<cmd>lua vim.lsp.buf.rename()<CR>', lsp_opts)
-        map({'n', 'v'}, '<leader>ca', '<cmd>lua vim.lsp.buf.code_action()<CR>', lsp_opts)
-        map('n', 'gr', '<cmd>lua vim.lsp.buf.references()<CR>', lsp_opts)
-        map('n', '<leader>e', '<cmd>lua vim.diagnostic.open_float({scope = "line"})<CR>', lsp_opts)
-        map('n', '[d', '<cmd>lua vim.diagnostic.goto_prev()<CR>', lsp_opts)
-        map('n', ']d', '<cmd>lua vim.diagnostic.goto_next()<CR>', lsp_opts)
-        map('n', '<leader>qf', '<cmd>lua vim.diagnostic.setloclist()<CR>', lsp_opts)
+        local lsp_opts = { noremap = true, silent = true, buffer = bufnr, desc = "LSP" }
+
+        map('n', 'gD', '<cmd>lua vim.lsp.buf.declaration()<CR>', vim.tbl_extend('keep', lsp_opts, { desc = 'LSP Declaration' }))
+        map('n', 'gd', '<cmd>lua vim.lsp.buf.definition()<CR>', vim.tbl_extend('keep', lsp_opts, { desc = 'LSP Definition' }))
+        map('n', 'K', '<cmd>lua vim.lsp.buf.hover()<CR>', vim.tbl_extend('keep', lsp_opts, { desc = 'LSP Hover' }))
+        map('n', 'gi', '<cmd>lua vim.lsp.buf.implementation()<CR>', vim.tbl_extend('keep', lsp_opts, { desc = 'LSP Implementation' }))
+        map('n', '<leader>sh', '<cmd>lua vim.lsp.buf.signature_help()<CR>', vim.tbl_extend('keep', lsp_opts, { desc = 'LSP Signature Help' }))
+        map('n', '<leader>wa', '<cmd>lua vim.lsp.buf.add_workspace_folder()<CR>', vim.tbl_extend('keep', lsp_opts, { desc = 'LSP Add Workspace Folder' }))
+        map('n', '<leader>wr', '<cmd>lua vim.lsp.buf.remove_workspace_folder()<CR>', vim.tbl_extend('keep', lsp_opts, { desc = 'LSP Remove Workspace Folder' }))
+        map('n', '<leader>wl', '<cmd>lua print(vim.inspect(vim.lsp.buf.list_workspace_folders()))<CR>', vim.tbl_extend('keep', lsp_opts, { desc = 'LSP List Workspace Folders' }))
+        map('n', '<leader>D', '<cmd>lua vim.lsp.buf.type_definition()<CR>', vim.tbl_extend('keep', lsp_opts, { desc = 'LSP Type Definition' }))
+        map('n', '<leader>rn', '<cmd>lua vim.lsp.buf.rename()<CR>', vim.tbl_extend('keep', lsp_opts, { desc = 'LSP Rename' }))
+        map({'n', 'v'}, '<leader>ca', '<cmd>lua vim.lsp.buf.code_action()<CR>', vim.tbl_extend('keep', lsp_opts, { desc = 'LSP Code Action' }))
+        map('n', 'gr', '<cmd>lua vim.lsp.buf.references()<CR>', vim.tbl_extend('keep', lsp_opts, { desc = 'LSP References' }))
+        map('n', '<leader>e', '<cmd>lua vim.diagnostic.open_float({scope = "line"})<CR>', vim.tbl_extend('keep', lsp_opts, { desc = 'LSP Line Diagnostics' }))
+        map('n', '[d', '<cmd>lua vim.diagnostic.goto_prev()<CR>', vim.tbl_extend('keep', lsp_opts, { desc = 'LSP Prev Diagnostic' }))
+        map('n', ']d', '<cmd>lua vim.diagnostic.goto_next()<CR>', vim.tbl_extend('keep', lsp_opts, { desc = 'LSP Next Diagnostic' }))
+        map('n', '<leader>qf', '<cmd>lua vim.diagnostic.setloclist()<CR>', vim.tbl_extend('keep', lsp_opts, { desc = 'LSP Diagnostics to Loclist' }))
+
         if client.supports_method("textDocument/formatting") then
-            map({'n', 'v'}, '<leader>lf', function() vim.lsp.buf.format({ async = true, bufnr = bufnr }) end, lsp_opts)
+          map({'n', 'v'}, '<leader>lf', function() vim.lsp.buf.format({ async = true, bufnr = bufnr }) end, vim.tbl_extend('keep', lsp_opts, { desc = 'LSP Format Document' }))
         end
-        -- Your C++/Header switching keymaps should be fine where they are if they don't rely on client object directly here.
+        -- Your C++/Header switching keymaps from core/keymaps.lua should still work independently.
       end
 
-      local lspconfig_pkg = require('lspconfig') -- require lspconfig package
+      local lspconfig_pkg = require('lspconfig') -- Get the lspconfig package
 
       require("mason-lspconfig").setup({
         ensure_installed = {
@@ -176,9 +173,9 @@ return {
           "pyright",
           "rust_analyzer"
         },
-        automatic_installation = false, -- This is fine
+        automatic_installation = false, -- Recommended to keep false and manage installs via Mason
         handlers = {
-          -- Default handler for servers not explicitly defined below
+          -- Default handler for servers not explicitly customized below
           function(server_name)
             lspconfig_pkg[server_name].setup({
               on_attach = on_attach,
@@ -186,6 +183,7 @@ return {
               flags = { debounce_text_changes = 150 },
             })
           end,
+          -- Custom setup for lua_ls
           ["lua_ls"] = function()
             lspconfig_pkg.lua_ls.setup({
               on_attach = on_attach,
@@ -202,54 +200,48 @@ return {
               flags = { debounce_text_changes = 150 },
             })
           end,
+          -- Custom setup for clangd (add any specific clangd options here if needed)
           ["clangd"] = function ()
             lspconfig_pkg.clangd.setup({
               on_attach = on_attach,
               capabilities = capabilities,
               flags = { debounce_text_changes = 150 },
-              -- You can add specific clangd settings here if needed, e.g., cmd for specific clangd binary
+              -- cmd = {"clangd", "--query-driver=/usr/bin/g++"} -- Example: if you need to specify compiler
             })
           end,
-          -- pyright and rust_analyzer will use the default handler above
-          -- unless you define specific handlers for them here.
+          -- pyright and rust_analyzer will use the default handler unless specified.
         }
       })
-      vim.notify("[MasonLspconfig] Setup with direct handlers complete.", vim.log.levels.INFO, {title = "Plugin Setup"})
     end,
   },
 
   {
     'neovim/nvim-lspconfig',
-    event = { "BufReadPre", "BufNewFile" }, -- Still triggers the LSP ecosystem
+    event = { "BufReadPre", "BufNewFile" }, -- This triggers the loading of the LSP ecosystem
     dependencies = {
-      'williamboman/mason.nvim',          -- Mason core
-      'williamboman/mason-lspconfig.nvim', -- Mason-lspconfig now handles server setup
+      'williamboman/mason.nvim',
+      'williamboman/mason-lspconfig.nvim', -- Ensures this is loaded and configured
       { 'j-hui/fidget.nvim', tag = "legacy", opts = {} }, -- LSP progress UI
     },
     config = function()
-      vim.notify("[nvim-lspconfig] Main config block running.", vim.log.levels.INFO, {title = "Plugin Setup"})
+      -- LSP server setups are now primarily handled by mason-lspconfig's handlers.
+      -- This block is for global LSP settings, diagnostics, or LSPs not managed by mason-lspconfig.
 
-      -- The main LSP server setups are now handled by mason-lspconfig's handlers.
-      -- This block is now primarily for global LSP settings, diagnostics,
-      -- or any LSP servers you might set up *manually* without mason-lspconfig.
-
-      -- Global diagnostic configuration (important to keep)
+      -- Configure diagnostic signs and appearance (important)
       vim.diagnostic.config({
-        virtual_text = false, -- You had this as false, can be true for inline diagnostics
+        virtual_text = false, -- Consider 'true' or a table for more options if you want inline virtual text
         signs = true,
         underline = true,
         update_in_insert = false,
         severity_sort = true,
       })
 
-      -- Define diagnostic signs (important to keep)
-      local signs = { Error = "E", Warn = "W", Hint = "H", Info = "I" } -- Or your preferred icons
+      local signs = { Error = "", Warn = "", Hint = "", Info = "" } -- Example: Nerd Font icons
+      -- local signs = { Error = "E", Warn = "W", Hint = "H", Info = "I" } -- Simpler text signs
       for type, icon in pairs(signs) do
         local hl_group = "DiagnosticSign" .. type
         vim.fn.sign_define(hl_group, { text = icon, texthl = hl_group, numhl = hl_group })
       end
-
-      vim.notify("[nvim-lspconfig] Global diagnostic settings applied.", vim.log.levels.INFO, {title = "Plugin Setup"})
     end,
   },
 
