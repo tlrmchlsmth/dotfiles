@@ -87,51 +87,62 @@ return {
   {
     'williamboman/mason.nvim',
     build = ":MasonUpdate",
-    cmd = "Mason",
+    event = "VeryLazy", -- Ensures it loads and configures on startup, available for other plugins.
+                       -- Or remove 'event' entirely if you want it to load only when a dependent plugin pulls it in.
+                       -- 'VeryLazy' is a good default for foundational plugins.
     config = function()
-      require("mason").setup({
+      vim.notify("[Mason] Attempting setup...", vim.log.levels.INFO, {title = "Plugin Setup"})
+      local status_ok, res = pcall(require("mason").setup, {
         ui = {
           border = "rounded",
           icons = { package_installed = "✓", package_pending = "➜", package_uninstalled = "✗" }
         }
       })
+      if not status_ok then
+        vim.notify("[Mason] ERROR setting up: " .. tostring(res), vim.log.levels.ERROR, {title = "Plugin Error"})
+      else
+        vim.notify("[Mason] Setup complete.", vim.log.levels.INFO, {title = "Plugin Setup"})
+      end
+    end,
+  }, 
+  
+    {
+    'williamboman/mason.nvim',
+    build = ":MasonUpdate",
+    event = "VeryLazy", -- This setup was good
+    config = function()
+      vim.notify("[Mason] Attempting setup...", vim.log.levels.INFO, {title = "Plugin Setup"})
+      local status_ok, res = pcall(require("mason").setup, {
+        ui = {
+          border = "rounded",
+          icons = { package_installed = "✓", package_pending = "➜", package_uninstalled = "✗" }
+        }
+      })
+      if not status_ok then
+        vim.notify("[Mason] ERROR setting up: " .. tostring(res), vim.log.levels.ERROR, {title = "Plugin Error"})
+      else
+        vim.notify("[Mason] Setup complete.", vim.log.levels.INFO, {title = "Plugin Setup"})
+      end
     end,
   },
+
   {
     'williamboman/mason-lspconfig.nvim',
-    dependencies = {'williamboman/mason.nvim'}, -- Depends on Mason being set up
-    -- This config function is for mason-lspconfig itself.
-    -- It's the one that errors around your line 151 if it fails internally.
+    dependencies = {'williamboman/mason.nvim'},
+    -- This plugin will now handle the primary setup of LSPs via its 'handlers'.
+    -- It should be triggered appropriately, often by nvim-lspconfig's events or by being a dependency.
+    -- For safety, you can give it an event too, or rely on nvim-lspconfig pulling it in.
+    event = "BufReadPre", -- Or let nvim-lspconfig trigger its load as a dependency
     config = function()
-      require("mason-lspconfig").setup({
-        ensure_installed = { -- Tells Mason (via this bridge) which LSPs to try and install
-          "lua_ls",
-          "clangd",
-          "pyright",
-          "rust_analyzer"
-        },
-        -- Explicitly set to false. The goal is to prevent mason-lspconfig
-        -- from running its 'automatic_enable.lua' logic too early or incorrectly.
-        -- The actual LSP server setups (lspconfig[server].setup()) will be
-        -- handled by nvim-lspconfig's config using setup_handlers.
-        automatic_installation = false,
-      })
-    end,
-  },
-  {
-    'neovim/nvim-lspconfig',
-    event = { "BufReadPre", "BufNewFile" },
-    dependencies = {
-      'williamboman/mason.nvim',          -- For general Mason functionality
-      'williamboman/mason-lspconfig.nvim', -- CRITICAL: nvim-lspconfig needs this to be loaded and configured first
-      { 'j-hui/fidget.nvim', tag = "legacy", opts = {} },
-    },
-    config = function()
-      local lspconfig = require('lspconfig')
+      vim.notify("[MasonLspconfig] Attempting setup with direct handlers...", vim.log.levels.INFO, {title = "Plugin Setup"})
+
+      -- Define on_attach and capabilities INSIDE this config, or ensure they are accessible from an outer scope
       local capabilities = vim.lsp.protocol.make_client_capabilities()
+      -- If you use nvim-cmp, you would integrate its capabilities here:
+      -- capabilities = require('cmp_nvim_lsp').default_capabilities(capabilities)
 
       local on_attach = function(client, bufnr)
-        -- (Your on_attach function - keep as is)
+        vim.notify("LSP attached: " .. client.name .. " to buffer " .. bufnr, vim.log.levels.INFO, {title = "LSP"})
         local map = vim.keymap.set
         local lsp_opts = { noremap=true, silent=true, buffer=bufnr }
         map('n', 'gD', '<cmd>lua vim.lsp.buf.declaration()<CR>', lsp_opts)
@@ -153,68 +164,92 @@ return {
         if client.supports_method("textDocument/formatting") then
             map({'n', 'v'}, '<leader>lf', function() vim.lsp.buf.format({ async = true, bufnr = bufnr }) end, lsp_opts)
         end
+        -- Your C++/Header switching keymaps should be fine where they are if they don't rely on client object directly here.
       end
 
-      -- Attempt to require mason-lspconfig, which should have been configured by its own `config` block already.
-      local mlsp_status_ok, mlsp = pcall(require, "mason-lspconfig")
+      local lspconfig_pkg = require('lspconfig') -- require lspconfig package
 
-      -- This is line 222 (approx) where the error for 'setup_handlers' (a nil value) occurs
-      -- if mason-lspconfig didn't load correctly.
-      if not mlsp_status_ok or not mlsp.setup_handlers then
-        vim.notify(
-          "mason-lspconfig module not loaded correctly or setup_handlers is missing. LSP setup might be incomplete.",
-          vim.log.levels.ERROR,
-          {title = "LSP Configuration Error"}
-        )
-        -- Fallback: You could try a manual setup here if desperate, but it's better to fix mason-lspconfig.
-        -- For now, just return to prevent further errors.
-        return
-      end
-
-      mlsp.setup_handlers({
-        function(server_name) -- Default handler
-          lspconfig[server_name].setup({
-            on_attach = on_attach,
-            capabilities = capabilities,
-            flags = { debounce_text_changes = 150 },
-          })
-        end,
-        ["lua_ls"] = function()
-          lspconfig.lua_ls.setup({
-            on_attach = on_attach,
-            capabilities = capabilities,
-            settings = {
-              Lua = {
-                runtime = { version = 'LuaJIT' },
-                diagnostics = { globals = { 'vim' }, disable = {'undefined-global', 'missing-fields'} },
-                workspace = { library = vim.api.nvim_get_runtime_file("", true), checkThirdParty = false },
-                completion = { callSnippet = "Replace" },
-                telemetry = { enable = false },
+      require("mason-lspconfig").setup({
+        ensure_installed = {
+          "lua_ls",
+          "clangd",
+          "pyright",
+          "rust_analyzer"
+        },
+        automatic_installation = false, -- This is fine
+        handlers = {
+          -- Default handler for servers not explicitly defined below
+          function(server_name)
+            lspconfig_pkg[server_name].setup({
+              on_attach = on_attach,
+              capabilities = capabilities,
+              flags = { debounce_text_changes = 150 },
+            })
+          end,
+          ["lua_ls"] = function()
+            lspconfig_pkg.lua_ls.setup({
+              on_attach = on_attach,
+              capabilities = capabilities,
+              settings = {
+                Lua = {
+                  runtime = { version = 'LuaJIT' },
+                  diagnostics = { globals = { 'vim' }, disable = {'undefined-global', 'missing-fields'} },
+                  workspace = { library = vim.api.nvim_get_runtime_file("", true), checkThirdParty = false },
+                  completion = { callSnippet = "Replace" },
+                  telemetry = { enable = false },
+                },
               },
-            },
-            flags = { debounce_text_changes = 150 },
-          })
-        end,
-        ["clangd"] = function ()
-          lspconfig.clangd.setup({
-            on_attach = on_attach,
-            capabilities = capabilities,
-            flags = { debounce_text_changes = 150 },
-          })
-        end,
-        -- pyright and rust_analyzer will use the default handler
+              flags = { debounce_text_changes = 150 },
+            })
+          end,
+          ["clangd"] = function ()
+            lspconfig_pkg.clangd.setup({
+              on_attach = on_attach,
+              capabilities = capabilities,
+              flags = { debounce_text_changes = 150 },
+              -- You can add specific clangd settings here if needed, e.g., cmd for specific clangd binary
+            })
+          end,
+          -- pyright and rust_analyzer will use the default handler above
+          -- unless you define specific handlers for them here.
+        }
       })
+      vim.notify("[MasonLspconfig] Setup with direct handlers complete.", vim.log.levels.INFO, {title = "Plugin Setup"})
+    end,
+  },
 
+  {
+    'neovim/nvim-lspconfig',
+    event = { "BufReadPre", "BufNewFile" }, -- Still triggers the LSP ecosystem
+    dependencies = {
+      'williamboman/mason.nvim',          -- Mason core
+      'williamboman/mason-lspconfig.nvim', -- Mason-lspconfig now handles server setup
+      { 'j-hui/fidget.nvim', tag = "legacy", opts = {} }, -- LSP progress UI
+    },
+    config = function()
+      vim.notify("[nvim-lspconfig] Main config block running.", vim.log.levels.INFO, {title = "Plugin Setup"})
+
+      -- The main LSP server setups are now handled by mason-lspconfig's handlers.
+      -- This block is now primarily for global LSP settings, diagnostics,
+      -- or any LSP servers you might set up *manually* without mason-lspconfig.
+
+      -- Global diagnostic configuration (important to keep)
       vim.diagnostic.config({
-        virtual_text = false, signs = true, underline = true,
-        update_in_insert = false, severity_sort = true,
+        virtual_text = false, -- You had this as false, can be true for inline diagnostics
+        signs = true,
+        underline = true,
+        update_in_insert = false,
+        severity_sort = true,
       })
 
-      local signs = { Error = "E", Warn = "W", Hint = "H", Info = "I" }
+      -- Define diagnostic signs (important to keep)
+      local signs = { Error = "E", Warn = "W", Hint = "H", Info = "I" } -- Or your preferred icons
       for type, icon in pairs(signs) do
         local hl_group = "DiagnosticSign" .. type
         vim.fn.sign_define(hl_group, { text = icon, texthl = hl_group, numhl = hl_group })
       end
+
+      vim.notify("[nvim-lspconfig] Global diagnostic settings applied.", vim.log.levels.INFO, {title = "Plugin Setup"})
     end,
   },
 
