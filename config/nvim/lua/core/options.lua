@@ -54,12 +54,12 @@ opt.tabstop = 2
 opt.shiftwidth = 2
 opt.expandtab = true
 opt.autoindent = true
-opt.smartindent = true -- Use smart indentation
 
 -- Completion
 opt.completeopt = 'menuone,noselect,preview' -- Completion options
 
 -- Files & Paths
+-- TODO: Do we need opt.path
 opt.path = './../../../**5,**' -- Set search path relative to cwd, include default recursive
 opt.tags = './tags;,tags;' -- Set tags file path (relative and global)
 opt.autochdir = false -- WARNING: autochdir can cause issues with LSP/plugins. Consider removing or using project-specific solutions.
