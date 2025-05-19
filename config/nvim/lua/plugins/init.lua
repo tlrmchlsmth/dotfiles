@@ -246,27 +246,57 @@ return {
   },
 
   -- ========== Fuzzy Finding ==========
-  {
+    {
     'ibhagwan/fzf-lua',
     dependencies = { 'nvim-tree/nvim-web-devicons' },
     config = function()
-       require('fzf-lua').setup({
-         winopts = { },
-         keymap = {
-           default = { ["<c-s>"] = "split", ["<c-v>"] = "vsplit", ["<c-t>"] = "tabedit" },
-           fzf = { ["ctrl-d"] = "preview-page-down", ["ctrl-u"] = "preview-page-up" },
-         },
-         files = {
-           -- Modified 'cmd' to exclude .git and .venv
-           cmd = vim.fn.executable("fd") == 1 and
-                   "fd --type f --hidden --follow --exclude .git --exclude .venv" or
-                   "find . \\( -name .git -o -name .venv \\) -prune -o -type f -print",
-           -- You can also add --no-ignore to fd if you want to ONLY rely on --exclude
-           -- and ignore .gitignore files, but the current setup respects .gitignore
-           -- AND adds your explicit excludes.
-         },
-         live_grep_native = { cmd = "rg --color=always --line-number --no-heading --smart-case ''" },
-       })
+      -- 1. Define your list of patterns to exclude
+      local exclude_patterns = {
+        ".git",
+        ".venv",
+        ".mypy_cache",
+        "__pycache__",
+        ".github",
+        ".deps",
+        ".ruff_cache",
+        "*.so",
+        "*.o"
+        -- Add more patterns here as needed
+      }
+
+      -- 2. Build the 'fd' command string
+      local fd_command_parts = {"fd --type f --hidden --follow"}
+      for _, pattern in ipairs(exclude_patterns) do
+        table.insert(fd_command_parts, "--exclude " .. pattern)
+      end
+      local fd_command_str = table.concat(fd_command_parts, " ")
+
+      -- 3. Build the 'find' command string
+      local find_name_conditions = {}
+      for _, pattern in ipairs(exclude_patterns) do
+        table.insert(find_name_conditions, "-name " .. pattern)
+      end
+      
+      local find_prune_section = ""
+      if #find_name_conditions > 0 then
+        find_prune_section = "\\( " .. table.concat(find_name_conditions, " -o ") .. " \\) -prune -o "
+      end
+      local find_command_str = "find . " .. find_prune_section .. "-type f -print"
+
+      -- 4. Setup fzf-lua using the generated commands
+      require('fzf-lua').setup({
+        winopts = { }, -- Your existing winopts
+        keymap = {    -- Your existing keymap
+          default = { ["<c-s>"] = "split", ["<c-v>"] = "vsplit", ["<c-t>"] = "tabedit" },
+          fzf = { ["ctrl-d"] = "preview-page-down", ["ctrl-u"] = "preview-page-up" },
+        },
+        files = {
+          cmd = vim.fn.executable("fd") == 1 and fd_command_str or find_command_str,
+        },
+        live_grep_native = { -- Your existing live_grep_native config
+          cmd = "rg --color=always --line-number --no-heading --smart-case ''"
+        },
+      })
     end
   },
 
