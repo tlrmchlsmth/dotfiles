@@ -256,7 +256,15 @@ return {
            default = { ["<c-s>"] = "split", ["<c-v>"] = "vsplit", ["<c-t>"] = "tabedit" },
            fzf = { ["ctrl-d"] = "preview-page-down", ["ctrl-u"] = "preview-page-up" },
          },
-         files = { cmd = vim.fn.executable("fd") == 1 and "fd --type f --hidden --follow --exclude .git" or "find . -type f -print" },
+         files = {
+           -- Modified 'cmd' to exclude .git and .venv
+           cmd = vim.fn.executable("fd") == 1 and
+                   "fd --type f --hidden --follow --exclude .git --exclude .venv" or
+                   "find . \\( -name .git -o -name .venv \\) -prune -o -type f -print",
+           -- You can also add --no-ignore to fd if you want to ONLY rely on --exclude
+           -- and ignore .gitignore files, but the current setup respects .gitignore
+           -- AND adds your explicit excludes.
+         },
          live_grep_native = { cmd = "rg --color=always --line-number --no-heading --smart-case ''" },
        })
     end
