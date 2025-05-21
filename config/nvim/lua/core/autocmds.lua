@@ -12,22 +12,24 @@ api.nvim_create_autocmd('TextYankPost', {
 })
 
 -- Return to last edit position
-api.nvim_create_autocmd('BufReadPost', {
-  pattern = '*',
+vim.api.nvim_create_autocmd('BufReadPost', {
   callback = function(args)
+    local buftype = vim.bo[args.buf].buftype
+    if buftype ~= '' then
+      return  -- skip special buffers like fugitive, help, etc.
+    end
+
     local mark = vim.api.nvim_buf_get_mark(args.buf, '"')
     local line = mark[1]
     local col = mark[2]
     if line > 0 and line <= vim.api.nvim_buf_line_count(args.buf) then
-      -- Defer setting cursor position slightly
       vim.defer_fn(function()
-         vim.api.nvim_win_set_cursor(0, {line, col})
-      end, 10) -- Small delay often helps
+        vim.api.nvim_win_set_cursor(0, {line, col})
+      end, 10)
     end
   end,
   desc = 'Restore cursor position on buffer load',
 })
-
 
 -- Autocommands for specific file types (alternative to ftplugins for simple settings)
 api.nvim_create_autocmd({'BufNewFile', 'BufRead'}, {
