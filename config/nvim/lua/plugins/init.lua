@@ -215,35 +215,47 @@ return {
     end,
   },
 
+
   {
     'neovim/nvim-lspconfig',
-    event = { "BufReadPre", "BufNewFile" }, -- This triggers the loading of the LSP ecosystem
+    event = { "BufReadPre", "BufNewFile" },
     dependencies = {
       'williamboman/mason.nvim',
-      'williamboman/mason-lspconfig.nvim', -- Ensures this is loaded and configured
-      { 'j-hui/fidget.nvim', tag = "legacy", opts = {} }, -- LSP progress UI
+      'williamboman/mason-lspconfig.nvim', 
+      { 'j-hui/fidget.nvim', tag = "legacy", opts = {} }, 
     },
     config = function()
       -- LSP server setups are now primarily handled by mason-lspconfig's handlers.
       -- This block is for global LSP settings, diagnostics, or LSPs not managed by mason-lspconfig.
 
-      -- Configure diagnostic signs and appearance (important)
+      -- Define your diagnostic icons
+      local diagnostic_icons = {
+        Error = "", -- Icon for errors
+        Warn  = "", -- Icon for warnings
+        Hint  = "", -- Icon for hints
+        Info  = ""  -- Icon for information
+      }
+
+      -- Configure diagnostic signs and appearance
       vim.diagnostic.config({
-        virtual_text = false, -- Consider 'true' or a table for more options if you want inline virtual text
-        signs = true,
+        virtual_text = false, 
+        signs = { -- Configure signs with your icons
+          text = {
+            [vim.diagnostic.severity.ERROR] = diagnostic_icons.Error,
+            [vim.diagnostic.severity.WARN]  = diagnostic_icons.Warn,
+            [vim.diagnostic.severity.HINT]  = diagnostic_icons.Hint,
+            [vim.diagnostic.severity.INFO]  = diagnostic_icons.Info,
+          }
+          -- Neovim will use standard highlight groups like DiagnosticSignError,
+          -- DiagnosticSignWarn, etc. These are typically defined by your colorscheme.
+        },
         underline = true,
         update_in_insert = false,
         severity_sort = true,
       })
-
-      local signs = { Error = "", Warn = "", Hint = "", Info = "" } -- Example: Nerd Font icons
-      -- local signs = { Error = "E", Warn = "W", Hint = "H", Info = "I" } -- Simpler text signs
-      for type, icon in pairs(signs) do
-        local hl_group = "DiagnosticSign" .. type
-        vim.fn.sign_define(hl_group, { text = icon, texthl = hl_group, numhl = hl_group })
-      end
     end,
   },
+
 
   -- ========== Fuzzy Finding ==========
     {
@@ -322,13 +334,12 @@ return {
                 default = "", symlink = "",
                 folder = { arrow_closed = "▸", arrow_open = "▾", default = "", open = "", empty = "", empty_open = "", symlink = "", symlink_open = "" },
                 git = { unstaged = "", staged = "✓", unmerged = "", renamed = "➜", untracked = "U", deleted = "✗", ignored = "◌" },
-                diagnostics = { error = "", warning = "", info = "", hint = "" }
             },
         },
       },
       filters = { dotfiles = false, custom = { ".git", "node_modules", ".cache", "__pycache__" }, exclude = {} },
       git = { enable = true, ignore = false, timeout = 400 },
-      update_focused_file = { enable = true, update_root = false, ignore_cb_helpers = false },
+      update_focused_file = { enable = true, update_root = false },
       diagnostics = { enable = true, show_on_dirs = true, icons = { hint = "", info = "", warning = "", error = "" } },
       actions = { open_file = { quit_on_open = false, resize_window = true, window_picker = { enable = true, chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890", exclude = { filetype = { "notify", "packer", "qf", "diff", "fugitive", "fugitiveblame" }, buftype = { "nofile", "terminal", "help" } } } } },
     },

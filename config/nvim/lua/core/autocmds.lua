@@ -11,6 +11,7 @@ api.nvim_create_autocmd('TextYankPost', {
   desc = 'Highlight yanked text',
 })
 
+
 -- Return to last edit position
 vim.api.nvim_create_autocmd('BufReadPost', {
   callback = function(args)
