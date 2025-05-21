@@ -47,5 +47,3 @@ api.nvim_create_autocmd('FileType', {
     command = 'syntax match Comment +\\/\\/.\\+$+',
     desc = "Allow // comments in JSON"
 })
-
-print('Autocommands loaded')
