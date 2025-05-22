@@ -2,7 +2,7 @@
 
 return {
   -- ========== Core Essentials ==========
-  { 'tpope/vim-fugitive', cmd = 'Git', ft = 'fugitive' },
+  { 'tpope/vim-fugitive' },
   { 'tpope/vim-surround', event = 'VeryLazy' },
   { 'tpope/vim-repeat', event = 'VeryLazy' },
   { 'tpope/vim-eunuch', event = 'VeryLazy' },
