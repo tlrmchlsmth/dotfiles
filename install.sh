@@ -76,10 +76,9 @@ fi
 
 print_header "Installing/Updating Neovim (Stable)"
 NVIM_APPIMAGE_URL="https://github.com/neovim/neovim/releases/download/stable/nvim-linux-x86_64.appimage"
-NVIM_APPIMAGE_DEST_DIR="$HOME/.local/bin"
 NVIM_APPIMAGE_NAME="nvim-linux-x86_64.appimage"
-NVIM_APPIMAGE_PATH="$NVIM_APPIMAGE_DEST_DIR/$NVIM_APPIMAGE_NAME"
-NVIM_SYMLINK_PATH="$NVIM_APPIMAGE_DEST_DIR/nvim"
+NVIM_APPIMAGE_PATH="$TARGET_BIN_DIR/$NVIM_APPIMAGE_NAME"
+NVIM_SYMLINK_PATH="$TARGET_BIN_DIR/nvim"
 
 echo "Downloading Neovim AppImage to $NVIM_APPIMAGE_PATH..."
 # Prefer curl, fallback to wget (both should be available from apt install)
@@ -263,11 +262,10 @@ print_header "Symlinking executables from $DOTFILES_DIR/bin to $HOME/.local/bin"
 
 SOURCE_BIN_DIR="$DOTFILES_DIR/bin"
 TARGET_BIN_DIR="$HOME/.local/bin"
+mkdir -p $TARGET_BIN_DIR
 
 if [ -d "$SOURCE_BIN_DIR" ]; then
     echo "Source directory for executables: $SOURCE_BIN_DIR"
-    echo "Ensuring target directory exists: $TARGET_BIN_DIR"
-    mkdir -p "$TARGET_BIN_DIR"
 
     echo "Symlinking contents of $SOURCE_BIN_DIR into $TARGET_BIN_DIR..."
     find "$SOURCE_BIN_DIR" -mindepth 1 -maxdepth 1 -print0 | while IFS= read -r -d '' source_script_abspath; do
