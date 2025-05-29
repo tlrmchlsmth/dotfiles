@@ -12,8 +12,8 @@ pip install -U pynvim
 
 ### Install script
 ```
-git clone https://github.com/tlrmchlsmth/dotfiles [-g GITHUB_TOKEN] [-h HUGGINGFACE_TOKEN]
+git clone https://github.com/tlrmchlsmth/dotfiles
 cd dotfiles
-bash install.sh
+bash install.sh [-g GITHUB_TOKEN] [-h HUGGINGFACE_TOKEN]
 ```
 
