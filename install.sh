@@ -73,6 +73,8 @@ fi
 
 
 # --- Setup Directories ---
+TARGET_BIN_DIR="$HOME/.local/bin"
+mkdir -p $TARGET_BIN_DIR
 
 print_header "Installing/Updating Neovim (Stable)"
 NVIM_APPIMAGE_URL="https://github.com/neovim/neovim/releases/download/stable/nvim-linux-x86_64.appimage"
@@ -261,8 +263,6 @@ echo ""
 print_header "Symlinking executables from $DOTFILES_DIR/bin to $HOME/.local/bin"
 
 SOURCE_BIN_DIR="$DOTFILES_DIR/bin"
-TARGET_BIN_DIR="$HOME/.local/bin"
-mkdir -p $TARGET_BIN_DIR
 
 if [ -d "$SOURCE_BIN_DIR" ]; then
     echo "Source directory for executables: $SOURCE_BIN_DIR"
