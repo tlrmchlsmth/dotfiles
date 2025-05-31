@@ -115,6 +115,8 @@ compinit
 
 #Tyler's aliases
 alias vi=nvim
+alias j=just
+alias k=kubectl
 alias pbcopy='xclip -sel clip'
 
 if [[ "$(uname 2> /dev/null)" == "Linux" ]] 
