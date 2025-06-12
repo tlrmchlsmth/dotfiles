@@ -140,5 +140,5 @@ export TERM=screen-256color-bce
 fpath+=~/.config/zsh/.zsh_functions
 
 # Source env local to this machine
-local_rc="$HOME/.local_zshrc"
+local_rc="$HOME/.zshrc.local"
 [[ -f $local_rc ]] && source "$local_rc"

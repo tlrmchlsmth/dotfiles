@@ -237,6 +237,7 @@ print_header "Symlinking dotfiles from $DOTFILES_DIR"
 echo "Symlinking .zshrc..."
 echo "Source: $DOTFILES_DIR/zshrc -> Target: $HOME/.zshrc"
 ln -sfn "$DOTFILES_DIR/zshrc" "$HOME/.zshrc" # -sfn is generally fine for single files like .zshrc
+touch "$HOME/.zshrc.local" # Create an empty local zshrc
 
 echo ""
 echo "Symlinking configurations from $DOTFILES_DIR/config to $HOME/.config/..."
