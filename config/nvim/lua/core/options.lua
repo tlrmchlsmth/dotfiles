@@ -4,7 +4,7 @@ local opt = vim.opt -- Alias for convenience
 
 -- General
 opt.mouse = '' -- Disable mouse
-opt.clipboard = 'unnamedplus' -- Use system clipboard (recommended)
+-- opt.clipboard = 'unnamedplus' -- Use system clipboard (recommended)
 opt.swapfile = false -- Consider disabling swapfile if using modern fs/git
 opt.backup = false -- Disable backup files
 opt.undofile = true -- Enable persistent undo
