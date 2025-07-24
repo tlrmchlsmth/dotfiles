@@ -142,3 +142,6 @@ fpath+=~/.config/zsh/.zsh_functions
 # Source env local to this machine
 local_rc="$HOME/.zshrc.local"
 [[ -f $local_rc ]] && source "$local_rc"
+
+# Faster vLLM builds
+CCACHE_NOHASHDIR="true"
