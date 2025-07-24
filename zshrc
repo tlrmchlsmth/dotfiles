@@ -145,3 +145,4 @@ local_rc="$HOME/.zshrc.local"
 
 # Faster vLLM builds
 CCACHE_NOHASHDIR="true"
+export VLLM_LOGGING_LEVEL="debug"
