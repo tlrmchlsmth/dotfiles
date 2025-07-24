@@ -59,8 +59,6 @@ opt.autoindent = true
 opt.completeopt = 'menuone,noselect,preview' -- Completion options
 
 -- Files & Paths
--- TODO: Do we need opt.path
-opt.path = './../../../**5,**' -- Set search path relative to cwd, include default recursive
 opt.tags = './tags;,tags;' -- Set tags file path (relative and global)
 opt.autochdir = false -- WARNING: autochdir can cause issues with LSP/plugins. Consider removing or using project-specific solutions.
 
