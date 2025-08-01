@@ -93,9 +93,14 @@ else
   wget -qO "${TMP_TARBALL}" "${NVIM_TARBALL_URL}"
 fi
 
-# Extract to a temp dir, then atomically move into place
-TMP_DIR="$(mktemp -d)"
-tar -xzf "${TMP_TARBALL}" -C "${TMP_DIR}"
+# Extract into a staging dir, stripping the top-level folder
+STAGE_DIR="$(mktemp -d)"
+mkdir -p "${STAGE_DIR}/nvim"
+if ! tar -xzf "${TMP_TARBALL}" --strip-components=1 -C "${STAGE_DIR}/nvim"; then
+  echo "Failed to extract Neovim tarball."
+  rm -rf "${STAGE_DIR}" "${TMP_TARBALL}"
+  exit 1
+fi
 rm -f "${TMP_TARBALL}"
 
 # The tarball extracts to nvim-linux64/
