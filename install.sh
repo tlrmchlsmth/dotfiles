@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-
-# Exit on error, treat unset variables as error (unless default is provided),
-# and ensure pipe commands fail if any command in the pipe fails.
 set -euo pipefail
 
 # --- Initialize argument-based token variables ---
@@ -233,11 +230,15 @@ fi
 # --- Symlinking Dotfiles ---
 print_header "Symlinking dotfiles from $DOTFILES_DIR"
 
-# Symlinking .zshrc (this part remains the same)
-echo "Symlinking .zshrc..."
+# Symlinking .zshrc
+echo "Symlinking .zshrc, .tmux.conf, ..."
 echo "Source: $DOTFILES_DIR/zshrc -> Target: $HOME/.zshrc"
-ln -sfn "$DOTFILES_DIR/zshrc" "$HOME/.zshrc" # -sfn is generally fine for single files like .zshrc
+ln -sfn "$DOTFILES_DIR/zshrc" "$HOME/.zshrc"
 touch "$HOME/.zshrc.local" # Create an empty local zshrc
+
+echo "Source: $DOTFILES_DIR/tmux.conf -> Target: $HOME/.tmux.conf"
+ln -sfn "$DOTFILES_DIR/tmux.conf" "$HOME/.tmux.conf"
+
 
 echo ""
 echo "Symlinking configurations from $DOTFILES_DIR/config to $HOME/.config/..."
@@ -285,8 +286,8 @@ fi
 # --- Git Configuration ---
 print_header "Configuring Git global settings"
 if command -v git >/dev/null; then
-    echo "Setting git user email: tysmith@redhat.com"
-    git config --global user.email "tysmith@redhat.com"
+    echo "Setting git user email: tlrmchlsmth@gmail.com"
+    git config --global user.email "tlrmchlsmth@gmail.com"
     echo "Setting git user name: Tyler Michael Smith"
     git config --global user.name "Tyler Michael Smith"
     echo "Setting git pull rebase behavior: false"
