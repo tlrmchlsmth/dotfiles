@@ -78,7 +78,7 @@ print_header "Installing/Updating Neovim (Stable)"
 #==========================================================================================
 
 NVIM_TARBALL_URL="https://github.com/neovim/neovim/releases/download/stable/nvim-linux-x86_64.tar.gz"
-NVIM_INSTALL_DIR="/opt/nvim"                        # final install dir
+NVIM_INSTALL_DIR="$HOME/.local/opt/nvim"                        # final install dir
 NVIM_SYMLINK_PATH="${TARGET_BIN_DIR}/nvim"         # e.g. /usr/local/bin/nvim
 
 echo "Downloading Neovim tarball..."
@@ -115,7 +115,7 @@ $SUDO_CMD ln -sf "${NVIM_INSTALL_DIR}/bin/nvim" "${NVIM_SYMLINK_PATH}"
 #==========================================================================================
 
 print_header "Installing pynvim Python package"
-pip3 install -U pynvim --break-system-packages # User-level or system-wide if root, no explicit sudo
+pip3 install -U pynvim #--break-system-packages # User-level or system-wide if root, no explicit sudo
 
 # --- GitHub CLI Installation & Login ---
 print_header "Installing GitHub CLI"
