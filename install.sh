@@ -73,23 +73,46 @@ fi
 TARGET_BIN_DIR="$HOME/.local/bin"
 mkdir -p $TARGET_BIN_DIR
 
+#==========================================================================================
 print_header "Installing/Updating Neovim (Stable)"
-NVIM_APPIMAGE_URL="https://github.com/neovim/neovim/releases/download/stable/nvim-linux-x86_64.appimage"
-NVIM_APPIMAGE_NAME="nvim-linux-x86_64.appimage"
-NVIM_APPIMAGE_PATH="$TARGET_BIN_DIR/$NVIM_APPIMAGE_NAME"
-NVIM_SYMLINK_PATH="$TARGET_BIN_DIR/nvim"
+#==========================================================================================
 
-echo "Downloading Neovim AppImage to $NVIM_APPIMAGE_PATH..."
-# Prefer curl, fallback to wget (both should be available from apt install)
+NVIM_TARBALL_URL="https://github.com/neovim/neovim/releases/download/stable/nvim-linux-x86_64.tar.gz"
+NVIM_INSTALL_DIR="/opt/nvim"                        # final install dir
+NVIM_SYMLINK_PATH="${TARGET_BIN_DIR}/nvim"         # e.g. /usr/local/bin/nvim
+
+echo "Downloading Neovim tarball..."
+TMP_TARBALL="$(mktemp)"
 if command -v curl >/dev/null 2>&1; then
-    curl -sSL -o "${NVIM_APPIMAGE_PATH}.tmp" "$NVIM_APPIMAGE_URL"
+  curl -fsSL -o "${TMP_TARBALL}" "${NVIM_TARBALL_URL}"
 else
-    wget -qO "${NVIM_APPIMAGE_PATH}.tmp" "$NVIM_APPIMAGE_URL"
+  wget -qO "${TMP_TARBALL}" "${NVIM_TARBALL_URL}"
 fi
-mv "${NVIM_APPIMAGE_PATH}.tmp" "$NVIM_APPIMAGE_PATH"
-chmod +x "$NVIM_APPIMAGE_PATH"
-echo "Creating symlink $NVIM_SYMLINK_PATH -> $NVIM_APPIMAGE_NAME"
-ln -sf "$NVIM_APPIMAGE_PATH" "$NVIM_SYMLINK_PATH"
+
+# Extract into a staging dir, stripping the top-level folder
+STAGE_DIR="$(mktemp -d)"
+mkdir -p "${STAGE_DIR}/nvim"
+if ! tar -xzf "${TMP_TARBALL}" --strip-components=1 -C "${STAGE_DIR}/nvim"; then
+  echo "Failed to extract Neovim tarball."
+  rm -rf "${STAGE_DIR}" "${TMP_TARBALL}"
+  exit 1
+fi
+rm -f "${TMP_TARBALL}"
+
+# Atomically replace existing install
+$SUDO_CMD rm -rf "${NVIM_INSTALL_DIR}"
+$SUDO_CMD mkdir -p "$(dirname "${NVIM_INSTALL_DIR}")"
+$SUDO_CMD mv "${STAGE_DIR}/nvim" "${NVIM_INSTALL_DIR}"
+rm -rf "${STAGE_DIR}"
+
+# Ensure bin dir exists and symlink
+$SUDO_CMD mkdir -p "${TARGET_BIN_DIR}"
+echo "Creating symlink ${NVIM_SYMLINK_PATH} -> ${NVIM_INSTALL_DIR}/bin/nvim"
+$SUDO_CMD ln -sf "${NVIM_INSTALL_DIR}/bin/nvim" "${NVIM_SYMLINK_PATH}"
+
+# Verify
+"${NVIM_SYMLINK_PATH}" --version | head -n1
+#==========================================================================================
 
 print_header "Installing pynvim Python package"
 pip3 install -U pynvim --break-system-packages # User-level or system-wide if root, no explicit sudo

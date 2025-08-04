@@ -169,7 +169,6 @@ return {
       require("mason-lspconfig").setup({
         ensure_installed = {
           "lua_ls",
-          "clangd",
           "pyright",
           "rust_analyzer"
         },
@@ -198,15 +197,6 @@ return {
                 },
               },
               flags = { debounce_text_changes = 150 },
-            })
-          end,
-          -- Custom setup for clangd (add any specific clangd options here if needed)
-          ["clangd"] = function ()
-            lspconfig_pkg.clangd.setup({
-              on_attach = on_attach,
-              capabilities = capabilities,
-              flags = { debounce_text_changes = 150 },
-              -- cmd = {"clangd", "--query-driver=/usr/bin/g++"} -- Example: if you need to specify compiler
             })
           end,
           -- pyright and rust_analyzer will use the default handler unless specified.
