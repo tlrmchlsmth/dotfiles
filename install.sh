@@ -319,6 +319,17 @@ else
     echo "Warning: git command not found. Skipping Git global configuration." >&2
 fi
 
+# Install newer version of fzf. Needs to be at least 0.36 and Ubuntu 22.04 ships with 0.29
+FZF_DIR="$HOME/.fzf"
+print_header "Installing fzf"
+if [ -d "$FZF_DIR" ]; then
+    echo "FZF already installed at $FZF_DIR. Skipping installation."
+else
+  git clone --depth 1 --branch v0.65.2 https://github.com/junegunn/fzf.git ~/.fzf
+fi
+~/.fzf/install --bin
+ln -sf ~/.fzf/bin/fzf ~/.local/bin/fzf
+
 print_header "Setup script finished!"
 echo "Review any warnings above."
 echo "If Oh My Zsh was installed or zshrc was updated, please restart your shell or source your .zshrc (e.g., 'source ~/.zshrc') for changes to take full effect."
