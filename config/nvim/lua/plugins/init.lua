@@ -169,7 +169,7 @@ return {
       require("mason-lspconfig").setup({
         ensure_installed = {
           "lua_ls",
-          "pyright",
+          "ty",
           "rust_analyzer"
         },
         automatic_installation = false, -- Recommended to keep false and manage installs via Mason
@@ -199,7 +199,20 @@ return {
               flags = { debounce_text_changes = 150 },
             })
           end,
-          -- pyright and rust_analyzer will use the default handler unless specified.
+          -- Custom setup for ty (Astral's Python language server)
+          ["ty"] = function()
+            lspconfig_pkg.ty.setup({
+              on_attach = on_attach,
+              capabilities = capabilities,
+              settings = {
+                ty = {
+                  diagnosticMode = 'workspace', -- 'workspace' or 'openFilesOnly'
+                },
+              },
+              flags = { debounce_text_changes = 150 },
+            })
+          end,
+          -- rust_analyzer will use the default handler unless specified.
         }
       })
     end,
