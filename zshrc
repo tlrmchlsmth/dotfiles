@@ -61,6 +61,19 @@ plugins=(git zsh-autosuggestions)
 
 source $ZSH/oh-my-zsh.sh
 
+# Fix af-magic dash calculation for venvs (uses displayed name, not full path)
+function afmagic_dashes {
+  if [[ -n "$VIRTUAL_ENV" && -z "$VIRTUAL_ENV_DISABLE_PROMPT" && -n "$VIRTUAL_ENV_PROMPT" ]]; then
+    echo $(( COLUMNS - ${#VIRTUAL_ENV_PROMPT} ))
+  elif [[ -n "$VIRTUAL_ENV" && -z "$VIRTUAL_ENV_DISABLE_PROMPT" ]]; then
+    echo $(( COLUMNS - ${#${VIRTUAL_ENV:t}} - 3 ))
+  elif [[ -n "$CONDA_DEFAULT_ENV" ]]; then
+    echo $(( COLUMNS - ${#CONDA_DEFAULT_ENV} - 3 ))
+  else
+    echo $COLUMNS
+  fi
+}
+
 # User configuration
 
 # export MANPATH="/usr/local/man:$MANPATH"
@@ -147,3 +160,32 @@ local_rc="$HOME/.zshrc.local"
 # Faster vLLM builds
 CCACHE_NOHASHDIR="true"
 export VLLM_LOGGING_LEVEL="debug"
+
+# Auto-activate/deactivate Python virtualenvs
+function _find_venv() {
+  local dir="$PWD"
+  while [[ "$dir" != "/" ]]; do
+    if [[ -f "$dir/.venv/bin/activate" ]]; then
+      echo "$dir/.venv"
+      return
+    fi
+    dir="${dir:h}"
+  done
+}
+
+function _auto_venv() {
+  local venv_path=$(_find_venv)
+
+  if [[ -n "$venv_path" ]]; then
+    if [[ "$VIRTUAL_ENV" != "$venv_path" ]]; then
+      [[ -n "$VIRTUAL_ENV" ]] && deactivate
+      source "$venv_path/bin/activate"
+    fi
+  elif [[ -n "$VIRTUAL_ENV" ]]; then
+    deactivate
+  fi
+}
+
+autoload -U add-zsh-hook
+add-zsh-hook chpwd _auto_venv
+_auto_venv  # Run on shell start
