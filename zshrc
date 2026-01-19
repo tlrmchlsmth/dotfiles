@@ -127,6 +127,7 @@ fi
 alias make=safemake.sh
 
 export PATH=$HOME/.local/bin:$PATH
+export PATH="$HOME/go/bin:$PATH"
 
 export CUDA_HOME=/usr/local/cuda
 export CUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME
