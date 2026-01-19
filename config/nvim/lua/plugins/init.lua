@@ -350,5 +350,16 @@ return {
 
   -- ========== Other Plugins ==========
   { 'ojroques/vim-oscyank', branch = 'main', event = 'VeryLazy' },
+
+  -- ========== Task Runner ==========
+  {
+    'stevearc/overseer.nvim',
+    cmd = { 'OverseerRun', 'OverseerToggle', 'OverseerOpen', 'OverseerClose', 'OverseerInfo' },
+    keys = {
+      { '<leader>or', '<cmd>OverseerRun<CR>', desc = 'Overseer Run Task' },
+      { '<leader>ot', '<cmd>OverseerToggle<CR>', desc = 'Overseer Toggle' },
+    },
+    opts = {},
+  },
 }
 
