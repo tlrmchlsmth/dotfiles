@@ -148,7 +148,14 @@ export PATH=$PATH:$CUDA_HOME/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CUDA_HOME/lib64
 export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:$CUDA_HOME/include
 
-export TERM=screen-256color-bce
+# Set TERM inside tmux/screen, preferring bce variant if available
+if [[ -n "$TMUX" ]]; then
+    if infocmp screen-256color-bce &>/dev/null; then
+        export TERM=screen-256color-bce
+    elif infocmp screen-256color &>/dev/null; then
+        export TERM=screen-256color
+    fi
+fi
 
 #alacritty autocomplete stuff
 fpath+=~/.config/zsh/.zsh_functions
