@@ -148,6 +148,14 @@ export PATH=$PATH:$CUDA_HOME/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CUDA_HOME/lib64
 export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:$CUDA_HOME/include
 
+# Fix TERM if set to something invalid (e.g., screen-* outside of tmux/screen,
+# or a terminfo that doesn't exist on this machine)
+if [[ -z "$TMUX" && -z "$STY" ]]; then
+    if [[ "$TERM" == screen-* || "$TERM" == tmux-* ]] || ! infocmp "$TERM" &>/dev/null; then
+        export TERM=xterm-256color
+    fi
+fi
+
 # Set TERM inside tmux/screen, preferring bce variant if available
 if [[ -n "$TMUX" ]]; then
     if infocmp screen-256color-bce &>/dev/null; then
