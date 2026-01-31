@@ -77,7 +77,15 @@ mkdir -p $TARGET_BIN_DIR
 print_header "Installing/Updating Neovim (Stable)"
 #==========================================================================================
 
-NVIM_TARBALL_URL="https://github.com/neovim/neovim/releases/download/stable/nvim-linux-x86_64.tar.gz"
+# Detect architecture for neovim download
+ARCH=$(uname -m)
+case "$ARCH" in
+  x86_64)  NVIM_ARCH="x86_64" ;;
+  aarch64) NVIM_ARCH="arm64" ;;
+  arm64)   NVIM_ARCH="arm64" ;;
+  *)       echo "Unsupported architecture: $ARCH" >&2; exit 1 ;;
+esac
+NVIM_TARBALL_URL="https://github.com/neovim/neovim/releases/download/stable/nvim-linux-${NVIM_ARCH}.tar.gz"
 NVIM_INSTALL_DIR="$HOME/.local/opt/nvim"                        # final install dir
 NVIM_SYMLINK_PATH="${TARGET_BIN_DIR}/nvim"         # e.g. /usr/local/bin/nvim
 
