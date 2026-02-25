@@ -314,6 +314,23 @@ fi
 
 
 
+# --- Claude Code Skills ---
+print_header "Symlinking Claude Code skills from $DOTFILES_DIR/claude-skills to $HOME/.claude/skills"
+
+CLAUDE_SKILLS_SOURCE="$DOTFILES_DIR/claude-skills"
+CLAUDE_SKILLS_TARGET="$HOME/.claude/skills"
+
+if [ -d "$CLAUDE_SKILLS_SOURCE" ]; then
+    mkdir -p "$CLAUDE_SKILLS_TARGET"
+    find "$CLAUDE_SKILLS_SOURCE" -mindepth 1 -maxdepth 1 -type d -print0 | while IFS= read -r -d '' skill_dir; do
+        skill_name=$(basename "$skill_dir")
+        echo "  Symlinking: $skill_dir -> $CLAUDE_SKILLS_TARGET/$skill_name"
+        ln -sfn "$skill_dir" "$CLAUDE_SKILLS_TARGET/$skill_name"
+    done
+else
+    echo "No claude-skills directory found. Skipping."
+fi
+
 # --- Git Configuration ---
 print_header "Configuring Git global settings"
 if command -v git >/dev/null; then
