@@ -314,8 +314,19 @@ fi
 
 
 
+# --- Claude Code Configuration ---
+print_header "Setting up Claude Code configuration"
+
+mkdir -p "$HOME/.claude"
+
+CLAUDE_MD_SOURCE="$DOTFILES_DIR/claude/CLAUDE.md"
+if [ -f "$CLAUDE_MD_SOURCE" ]; then
+    echo "  Symlinking: $CLAUDE_MD_SOURCE -> $HOME/.claude/CLAUDE.md"
+    ln -sfn "$CLAUDE_MD_SOURCE" "$HOME/.claude/CLAUDE.md"
+fi
+
 # --- Claude Code Skills ---
-print_header "Symlinking Claude Code skills from $DOTFILES_DIR/claude-skills to $HOME/.claude/skills"
+echo "Symlinking Claude Code skills from $DOTFILES_DIR/claude-skills to $HOME/.claude/skills"
 
 CLAUDE_SKILLS_SOURCE="$DOTFILES_DIR/claude-skills"
 CLAUDE_SKILLS_TARGET="$HOME/.claude/skills"
