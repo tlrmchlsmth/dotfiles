@@ -2,39 +2,41 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Git
+
+- Always use `--signoff` (`-s`) when creating git commits.
+
+## Build / Run
+
+- Prefer to use Justfile commands when available.
+
 ## Overview
 
-This is a personal dotfiles repository for Ubuntu 22.04/Linux development environments. It manages configuration for:
+This is a personal dotfiles repository for cross-platform development environments (Ubuntu, Fedora, Arch, macOS). It manages configuration for:
 - Neovim (Lua-based config with lazy.nvim)
-- Zsh with Oh My Zsh
+- Zsh (standalone, no framework — custom prompt, git aliases, zsh-autosuggestions)
 - Tmux
 - Custom shell utilities
 
 ## Installation
 
-The repository is designed to be installed via `install.sh`:
-
 ```bash
-bash install.sh [-g GITHUB_TOKEN] [-h HUGGINGFACE_TOKEN]
+git clone https://github.com/tlrmchlsmth/dotfiles.git ~/.dotfiles && cd ~/.dotfiles && bash install.sh
 ```
 
-This script:
-1. Installs/updates Neovim stable to `~/.local/opt/nvim`
-2. Installs GitHub CLI and authenticates if token provided
-3. Sets up Oh My Zsh with zsh-autosuggestions plugin
-4. Symlinks dotfiles to home directory
-5. Symlinks `config/*` to `~/.config/`
-6. Symlinks executables from `bin/` to `~/.local/bin/`
-7. Configures Git global settings
-8. Installs fzf v0.65.2
+Options: `bash install.sh [-g GITHUB_TOKEN] [-h HUGGINGFACE_TOKEN]`
+
+The script detects the OS/distro and uses the appropriate package manager (apt/dnf/pacman/brew).
 
 ## Architecture
 
 ### Configuration Structure
 
 - **Root dotfiles**: `zshrc`, `tmux.conf` are symlinked directly to `~/.zshrc` and `~/.tmux.conf`
+- **Zsh modules**: `zsh/prompt.zsh` (af-magic-style prompt using vcs_info), `zsh/git-aliases.zsh`
 - **Config directory**: `config/nvim/` is symlinked to `~/.config/nvim/`
 - **Executables**: `bin/` contents are symlinked to `~/.local/bin/` (which is on PATH)
+- **Container**: `container/Dockerfile` layers dotfiles on vLLM nightly image
 
 ### Neovim Configuration
 
@@ -52,43 +54,40 @@ Key plugins:
 
 ### Zsh Configuration
 
-- **Theme**: af-magic
-- **Plugins**: git, zsh-autosuggestions
-- **Key settings**: Case-sensitive completion, 100k history, emacs keybindings
-- **Aliases**:
-  - `vi` → `nvim`
-  - `j` → `just`
-  - `k` → `kubectl`
-  - `make` → `safemake.sh` (limits `-j` to 56 by default via `J_LIMIT` env var)
+- **Prompt**: Custom af-magic-style prompt in `zsh/prompt.zsh` (uses zsh's built-in `vcs_info`)
+- **Git aliases**: Extracted from OMZ git plugin in `zsh/git-aliases.zsh`
+- **Plugins**: zsh-autosuggestions (installed standalone to `~/.zsh/plugins/`)
+- **Key settings**: 100k history, emacs keybindings
+- **Aliases**: `vi` → `nvim`, `j` → `just`, `k` → `kubectl`, `make` → `safemake.sh`
 - **Local overrides**: Sources `~/.zshrc.local` if present
+- **Auto-venv**: Automatically activates/deactivates `.venv` when changing directories
+- **CUDA**: Environment variables set only if `/usr/local/cuda` exists
 
 ### Tmux Configuration
 
-- **Prefix**: Changed from `C-b` to `C-a`
+- **Prefix**: `C-Space`
 - **Split bindings**: `|` (vertical), `-` (horizontal)
 - **Pane navigation**: Alt+Arrow (no prefix)
 - **Window navigation**: Shift+Arrow (no prefix)
-- **Copy mode**: Vim keybindings
+- **Copy mode**: Vim keybindings, OS-aware clipboard (pbcopy/xclip/xsel)
 - **Theme**: Green/yellow color scheme with high scrollback (9999999 lines)
-- **Plugins**: tpm, tmux-sensible
+
+## CI
+
+GitHub Actions workflow (`.github/workflows/ci.yml`) tests install.sh on:
+- Ubuntu (latest + 22.04)
+- Fedora (container)
+- Arch Linux (container)
+- macOS (latest)
 
 ## Custom Utilities
 
 ### safemake.sh
 
-Wrapper around `/usr/bin/make` that enforces a maximum parallelism limit:
+Wrapper around `make` that enforces a maximum parallelism limit:
 - Default limit: 56 (configurable via `J_LIMIT` environment variable)
 - Automatically fixes naked `-j` or caps excessive `-j N` values
 - Aliased as `make` in zshrc
-
-## Environment Variables
-
-Key environment variables set in zshrc:
-- `CUDA_HOME=/usr/local/cuda` (with PATH and LD_LIBRARY_PATH additions)
-- `TERM=screen-256color-bce`
-- `EDITOR=nvim`
-- `VLLM_LOGGING_LEVEL=debug`
-- `CCACHE_NOHASHDIR=true`
 
 ## Development Notes
 

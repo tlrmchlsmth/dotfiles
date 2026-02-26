@@ -13,8 +13,6 @@ print_usage() {
 }
 
 # --- Parse command-line arguments for tokens ---
-# Leading ':' in optstring enables silent error handling for getopts
-# 'g:' and 'h:' expect arguments
 while getopts ":g:h:" opt; do
   case ${opt} in
     g )
@@ -23,19 +21,19 @@ while getopts ":g:h:" opt; do
     h )
       ARG_HF_TOKEN="$OPTARG"
       ;;
-    \? ) # Invalid option
+    \? )
       echo "Invalid option: -$OPTARG" 1>&2
       print_usage
       exit 1
       ;;
-    : ) # Missing option argument
+    : )
       echo "Invalid option: -$OPTARG requires an argument" 1>&2
       print_usage
       exit 1
       ;;
   esac
 done
-shift $((OPTIND -1)) # Remove parsed options and their arguments from $@
+shift $((OPTIND -1))
 
 # --- Helper: Print section headers ---
 print_header() {
@@ -45,122 +43,262 @@ print_header() {
     echo "---------------------------------------------------------------------"
 }
 
-# --- Determine sudo command ---
-SUDO_CMD=""
-PRIVILEGED_OPERATION_FAILED_MESSAGE="Privileged operations may fail. Ensure you have appropriate permissions or that sudo is configured for passwordless access if running non-interactively."
+# --- OS / Distro Detection ---
+OS=""
+DISTRO=""
 
-if [ "$(id -u)" -ne 0 ]; then # If not root
-    if command -v sudo >/dev/null 2>&1; then # If sudo is available
-        if sudo -n true >/dev/null 2>&1; then # Check if sudo can be run without a password
-            SUDO_CMD="sudo -n" # Use non-interactive sudo
-            echo "Using 'sudo -n' for privileged operations."
+case "$(uname -s)" in
+  Linux)
+    OS="linux"
+    if [ -f /etc/os-release ]; then
+      # shellcheck disable=SC1091
+      . /etc/os-release
+      case "$ID" in
+        ubuntu|debian) DISTRO="ubuntu" ;;
+        fedora)        DISTRO="fedora" ;;
+        arch|manjaro)  DISTRO="arch" ;;
+        *)
+          echo "Warning: Unsupported Linux distro '$ID'. Will attempt Ubuntu-style commands." >&2
+          DISTRO="ubuntu"
+          ;;
+      esac
+    else
+      echo "Warning: /etc/os-release not found. Assuming Ubuntu-like system." >&2
+      DISTRO="ubuntu"
+    fi
+    ;;
+  Darwin)
+    OS="darwin"
+    DISTRO="macos"
+    ;;
+  *)
+    echo "Unsupported OS: $(uname -s)" >&2
+    exit 1
+    ;;
+esac
+
+echo "Detected OS: $OS, Distro: $DISTRO"
+
+# --- Determine sudo command (Linux only, macOS uses Homebrew as user) ---
+SUDO_CMD=""
+
+if [ "$OS" = "linux" ]; then
+    if [ "$(id -u)" -ne 0 ]; then
+        if command -v sudo >/dev/null 2>&1; then
+            if sudo -n true >/dev/null 2>&1; then
+                SUDO_CMD="sudo -n"
+                echo "Using 'sudo -n' for privileged operations."
+            else
+                echo "Warning: sudo requires a password. Privileged operations may fail." >&2
+            fi
         else
-            echo "Warning: sudo is available but requires a password or is not configured for current user's non-interactive use for all commands." >&2
-            echo "$PRIVILEGED_OPERATION_FAILED_MESSAGE" >&2
-            # SUDO_CMD remains empty, commands will be attempted without sudo.
+            echo "Warning: Running as non-root user and sudo not found." >&2
         fi
     else
-        echo "Warning: Running as non-root user and sudo command not found." >&2
-        echo "$PRIVILEGED_OPERATION_FAILED_MESSAGE" >&2
-        # SUDO_CMD remains empty
+        echo "Running as root. Privileged operations will be executed directly."
     fi
-else
-    echo "Running as root. Privileged operations will be executed directly."
 fi
 
-
 # --- Setup Directories ---
+DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
 TARGET_BIN_DIR="$HOME/.local/bin"
-mkdir -p $TARGET_BIN_DIR
+mkdir -p "$TARGET_BIN_DIR"
+
+echo "Dotfiles directory: $DOTFILES_DIR"
+
+#==========================================================================================
+print_header "Installing prerequisites"
+#==========================================================================================
+
+case "$DISTRO" in
+  ubuntu)
+    if [ -n "$SUDO_CMD" ] || [ "$(id -u)" -eq 0 ]; then
+      env DEBIAN_FRONTEND=noninteractive $SUDO_CMD apt-get update -qq
+      env DEBIAN_FRONTEND=noninteractive $SUDO_CMD apt-get install -y \
+        git curl zsh ripgrep bat python3-pip python3-venv tmux
+    else
+      echo "Skipping apt package installation (no sudo access)."
+    fi
+    ;;
+  fedora)
+    if [ -n "$SUDO_CMD" ] || [ "$(id -u)" -eq 0 ]; then
+      $SUDO_CMD dnf install -y \
+        git curl zsh ripgrep bat python3-pip tmux
+    else
+      echo "Skipping dnf package installation (no sudo access)."
+    fi
+    ;;
+  arch)
+    if [ -n "$SUDO_CMD" ] || [ "$(id -u)" -eq 0 ]; then
+      $SUDO_CMD pacman -Sy --noconfirm \
+        git curl zsh ripgrep bat python-pip tmux
+    else
+      echo "Skipping pacman package installation (no sudo access)."
+    fi
+    ;;
+  macos)
+    if ! command -v brew >/dev/null 2>&1; then
+      echo "Error: Homebrew not found. Install from https://brew.sh" >&2
+      exit 1
+    fi
+    brew install git curl zsh ripgrep bat python3 tmux 2>/dev/null || true
+    ;;
+esac
 
 #==========================================================================================
 print_header "Installing/Updating Neovim (Stable)"
 #==========================================================================================
 
-# Detect architecture for neovim download
-ARCH=$(uname -m)
-case "$ARCH" in
-  x86_64)  NVIM_ARCH="x86_64" ;;
-  aarch64) NVIM_ARCH="arm64" ;;
-  arm64)   NVIM_ARCH="arm64" ;;
-  *)       echo "Unsupported architecture: $ARCH" >&2; exit 1 ;;
+install_neovim_tarball() {
+    # Used for Ubuntu (and macOS if Homebrew is unavailable)
+    local nvim_os="$1"
+
+    ARCH=$(uname -m)
+    case "$ARCH" in
+      x86_64)  NVIM_ARCH="x86_64" ;;
+      aarch64) NVIM_ARCH="arm64" ;;
+      arm64)   NVIM_ARCH="arm64" ;;
+      *)       echo "Unsupported architecture: $ARCH" >&2; return 1 ;;
+    esac
+
+    local tarball_url="https://github.com/neovim/neovim/releases/download/stable/nvim-${nvim_os}-${NVIM_ARCH}.tar.gz"
+    local install_dir="$HOME/.local/opt/nvim"
+    local symlink_path="${TARGET_BIN_DIR}/nvim"
+
+    echo "Downloading Neovim tarball from $tarball_url ..."
+    local tmp_tarball
+    tmp_tarball="$(mktemp)"
+    if command -v curl >/dev/null 2>&1; then
+      curl -fsSL -o "${tmp_tarball}" "${tarball_url}"
+    else
+      wget -qO "${tmp_tarball}" "${tarball_url}"
+    fi
+
+    local stage_dir
+    stage_dir="$(mktemp -d)"
+    mkdir -p "${stage_dir}/nvim"
+    if ! tar -xzf "${tmp_tarball}" --strip-components=1 -C "${stage_dir}/nvim"; then
+      echo "Failed to extract Neovim tarball."
+      rm -rf "${stage_dir}" "${tmp_tarball}"
+      return 1
+    fi
+    rm -f "${tmp_tarball}"
+
+    rm -rf "${install_dir}"
+    mkdir -p "$(dirname "${install_dir}")"
+    mv "${stage_dir}/nvim" "${install_dir}"
+    rm -rf "${stage_dir}"
+
+    mkdir -p "${TARGET_BIN_DIR}"
+    echo "Creating symlink ${symlink_path} -> ${install_dir}/bin/nvim"
+    ln -sf "${install_dir}/bin/nvim" "${symlink_path}"
+
+    "${symlink_path}" --version | head -n1
+}
+
+case "$DISTRO" in
+  ubuntu)
+    install_neovim_tarball "linux"
+    ;;
+  fedora)
+    if [ -n "$SUDO_CMD" ] || [ "$(id -u)" -eq 0 ]; then
+      $SUDO_CMD dnf install -y neovim
+    else
+      install_neovim_tarball "linux"
+    fi
+    ;;
+  arch)
+    if [ -n "$SUDO_CMD" ] || [ "$(id -u)" -eq 0 ]; then
+      $SUDO_CMD pacman -S --noconfirm neovim
+    else
+      install_neovim_tarball "linux"
+    fi
+    ;;
+  macos)
+    brew install neovim 2>/dev/null || brew upgrade neovim 2>/dev/null || true
+    ;;
 esac
-NVIM_TARBALL_URL="https://github.com/neovim/neovim/releases/download/stable/nvim-linux-${NVIM_ARCH}.tar.gz"
-NVIM_INSTALL_DIR="$HOME/.local/opt/nvim"                        # final install dir
-NVIM_SYMLINK_PATH="${TARGET_BIN_DIR}/nvim"         # e.g. /usr/local/bin/nvim
 
-echo "Downloading Neovim tarball..."
-TMP_TARBALL="$(mktemp)"
-if command -v curl >/dev/null 2>&1; then
-  curl -fsSL -o "${TMP_TARBALL}" "${NVIM_TARBALL_URL}"
+# Verify neovim is available
+if command -v nvim >/dev/null 2>&1; then
+    echo "Neovim installed: $(nvim --version | head -n1)"
 else
-  wget -qO "${TMP_TARBALL}" "${NVIM_TARBALL_URL}"
+    echo "Warning: nvim not found on PATH after installation." >&2
 fi
 
-# Extract into a staging dir, stripping the top-level folder
-STAGE_DIR="$(mktemp -d)"
-mkdir -p "${STAGE_DIR}/nvim"
-if ! tar -xzf "${TMP_TARBALL}" --strip-components=1 -C "${STAGE_DIR}/nvim"; then
-  echo "Failed to extract Neovim tarball."
-  rm -rf "${STAGE_DIR}" "${TMP_TARBALL}"
-  exit 1
-fi
-rm -f "${TMP_TARBALL}"
-
-# Atomically replace existing install
-$SUDO_CMD rm -rf "${NVIM_INSTALL_DIR}"
-$SUDO_CMD mkdir -p "$(dirname "${NVIM_INSTALL_DIR}")"
-$SUDO_CMD mv "${STAGE_DIR}/nvim" "${NVIM_INSTALL_DIR}"
-rm -rf "${STAGE_DIR}"
-
-# Ensure bin dir exists and symlink
-$SUDO_CMD mkdir -p "${TARGET_BIN_DIR}"
-echo "Creating symlink ${NVIM_SYMLINK_PATH} -> ${NVIM_INSTALL_DIR}/bin/nvim"
-$SUDO_CMD ln -sf "${NVIM_INSTALL_DIR}/bin/nvim" "${NVIM_SYMLINK_PATH}"
-
-# Verify
-"${NVIM_SYMLINK_PATH}" --version | head -n1
+#==========================================================================================
+print_header "Installing pynvim Python package"
 #==========================================================================================
 
-print_header "Installing pynvim Python package"
-pip3 install -U pynvim #--break-system-packages # User-level or system-wide if root, no explicit sudo
+PIP_EXTRA_ARGS=""
+if pip3 install --help 2>&1 | grep -q -- --break-system-packages; then
+  PIP_EXTRA_ARGS="--break-system-packages"
+fi
+# shellcheck disable=SC2086
+pip3 install -U pynvim $PIP_EXTRA_ARGS || echo "Warning: pip3 install pynvim failed." >&2
 
-# --- GitHub CLI Installation & Login ---
+#==========================================================================================
 print_header "Installing GitHub CLI"
+#==========================================================================================
+
 if ! type -p gh > /dev/null; then
     echo "GitHub CLI not found. Installing..."
-    DOWNLOAD_TOOL_CMD=""
-    if command -v curl >/dev/null 2>&1; then
-        DOWNLOAD_TOOL_CMD="curl -fsSL" # Used for piping GPG key
-    elif command -v wget >/dev/null 2>&1; then
-        DOWNLOAD_TOOL_CMD="wget -qO-" # Used for piping GPG key
-    fi
+    case "$DISTRO" in
+      ubuntu)
+        DOWNLOAD_TOOL_CMD=""
+        if command -v curl >/dev/null 2>&1; then
+            DOWNLOAD_TOOL_CMD="curl -fsSL"
+        elif command -v wget >/dev/null 2>&1; then
+            DOWNLOAD_TOOL_CMD="wget -qO-"
+        fi
 
-    if [ -n "$DOWNLOAD_TOOL_CMD" ]; then
-        KEYRING_DIR="/etc/apt/keyrings"
-        KEYRING_PATH="$KEYRING_DIR/githubcli-archive-keyring.gpg"
-        SOURCES_LIST_PATH="/etc/apt/sources.list.d/github-cli.list"
+        if [ -n "$DOWNLOAD_TOOL_CMD" ] && { [ -n "$SUDO_CMD" ] || [ "$(id -u)" -eq 0 ]; }; then
+            KEYRING_DIR="/etc/apt/keyrings"
+            KEYRING_PATH="$KEYRING_DIR/githubcli-archive-keyring.gpg"
+            SOURCES_LIST_PATH="/etc/apt/sources.list.d/github-cli.list"
 
-        $SUDO_CMD mkdir -p -m 755 "$KEYRING_DIR"
-        # shellcheck disable=SC2086 # We want word splitting for $DOWNLOAD_TOOL_CMD
-        eval "$DOWNLOAD_TOOL_CMD https://cli.github.com/packages/githubcli-archive-keyring.gpg" | $SUDO_CMD tee "$KEYRING_PATH" > /dev/null
-        $SUDO_CMD chmod go+r "$KEYRING_PATH"
-        
-        echo "deb [arch=$(dpkg --print-architecture) signed-by=$KEYRING_PATH] https://cli.github.com/packages stable main" | $SUDO_CMD tee "$SOURCES_LIST_PATH" > /dev/null
-        
-        env DEBIAN_FRONTEND=noninteractive $SUDO_CMD apt-get update -qq
-        env DEBIAN_FRONTEND=noninteractive $SUDO_CMD apt-get install -y gh
-        echo "GitHub CLI installed."
-    else
-        echo "Error: Neither curl nor wget is available to download GitHub CLI GPG key. Skipping gh installation." >&2
-    fi
+            $SUDO_CMD mkdir -p -m 755 "$KEYRING_DIR"
+            # shellcheck disable=SC2086
+            eval "$DOWNLOAD_TOOL_CMD https://cli.github.com/packages/githubcli-archive-keyring.gpg" | $SUDO_CMD tee "$KEYRING_PATH" > /dev/null
+            $SUDO_CMD chmod go+r "$KEYRING_PATH"
+
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=$KEYRING_PATH] https://cli.github.com/packages stable main" | $SUDO_CMD tee "$SOURCES_LIST_PATH" > /dev/null
+
+            env DEBIAN_FRONTEND=noninteractive $SUDO_CMD apt-get update -qq
+            env DEBIAN_FRONTEND=noninteractive $SUDO_CMD apt-get install -y gh
+            echo "GitHub CLI installed."
+        else
+            echo "Skipping GitHub CLI installation (no download tool or no sudo access)." >&2
+        fi
+        ;;
+      fedora)
+        if [ -n "$SUDO_CMD" ] || [ "$(id -u)" -eq 0 ]; then
+          $SUDO_CMD dnf install -y gh
+        else
+          echo "Skipping GitHub CLI installation (no sudo access)." >&2
+        fi
+        ;;
+      arch)
+        if [ -n "$SUDO_CMD" ] || [ "$(id -u)" -eq 0 ]; then
+          $SUDO_CMD pacman -S --noconfirm github-cli
+        else
+          echo "Skipping GitHub CLI installation (no sudo access)." >&2
+        fi
+        ;;
+      macos)
+        brew install gh 2>/dev/null || true
+        ;;
+    esac
 else
     echo "GitHub CLI is already installed."
 fi
 
+#==========================================================================================
 print_header "Setting up GitHub authentication"
+#==========================================================================================
+
 if command -v gh >/dev/null; then
-    if [ -n "$ARG_GH_TOKEN" ]; then # Use parsed argument
+    if [ -n "$ARG_GH_TOKEN" ]; then
         echo "GitHub token provided via -g argument. Attempting to log in with token..."
         if echo "$ARG_GH_TOKEN" | gh auth login --with-token; then
             gh auth setup-git
@@ -179,143 +317,85 @@ else
     echo "Warning: gh command not found. Skipping GitHub authentication setup." >&2
 fi
 
-# --- Dotfiles Setup ---
-DOTFILES_REPO_URL="https://github.com/tlrmchlsmth/dotfiles"
-DOTFILES_DIR="$PWD"
+#==========================================================================================
+print_header "Installing zsh plugins"
+#==========================================================================================
 
-print_header "Cloning/Updating dotfiles repository"
-echo "Dotfiles repository: $DOTFILES_REPO_URL"
-echo "Target directory: $DOTFILES_DIR"
+ZSH_PLUGINS_DIR="$HOME/.zsh/plugins"
+mkdir -p "$ZSH_PLUGINS_DIR"
 
-if command -v git >/dev/null; then
-    if [ -d "$DOTFILES_DIR/.git" ]; then
-        echo "$DOTFILES_DIR already exists and is a git repository. Pulling latest changes..."
-        (cd "$DOTFILES_DIR" && git pull)
-    elif [ -d "$DOTFILES_DIR" ]; then
-        BACKUP_DIR="$DOTFILES_DIR.bak.$(date +%Y%m%d%H%M%S)"
-        echo "Warning: $DOTFILES_DIR exists but is not a git repository." >&2
-        echo "Backing it up to $BACKUP_DIR and cloning anew."
-        mv "$DOTFILES_DIR" "$BACKUP_DIR"
-        git clone "$DOTFILES_REPO_URL" "$DOTFILES_DIR"
+install_zsh_plugin() {
+    local name="$1"
+    local repo_url="$2"
+    local dest="$ZSH_PLUGINS_DIR/$name"
+
+    if ! command -v git > /dev/null; then
+        echo "Error: git not found. Skipping $name." >&2
+        return
+    fi
+
+    if [ -d "$dest/.git" ]; then
+        echo "$name already installed. Pulling latest..."
+        (cd "$dest" && git pull) || true
     else
-        echo "Cloning repository..."
-        git clone -b nvim_lua_setup "$DOTFILES_REPO_URL" "$DOTFILES_DIR"
+        echo "Cloning $name..."
+        git clone "$repo_url" "$dest"
     fi
-else
-    echo "Error: git command not found. Cannot clone dotfiles repository." >&2
-fi
+}
 
+install_zsh_plugin "zsh-autosuggestions" "https://github.com/zsh-users/zsh-autosuggestions"
+install_zsh_plugin "fzf-tab" "https://github.com/Aloxaf/fzf-tab"
+install_zsh_plugin "zsh-completions" "https://github.com/zsh-users/zsh-completions"
 
-# --- Oh My Zsh and Plugins ---
-OHMYZSH_DIR="$HOME/.oh-my-zsh"
-OHMYZSH_INSTALL_SCRIPT_URL="https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh"
-
-print_header "Installing Oh My Zsh"
-if [ -d "$OHMYZSH_DIR" ]; then
-    echo "Oh My Zsh already installed at $OHMYZSH_DIR. Skipping installation."
-    echo "You can update Oh My Zsh manually by running 'omz update' (if using zsh)."
-elif ! command -v git > /dev/null; then
-    echo "Error: git command not found. Oh My Zsh installation requires git. Skipping." >&2
-elif ! command -v zsh > /dev/null; then
-    echo "Error: zsh command not found. Oh My Zsh installation requires zsh. Skipping." >&2
-else
-    INSTALL_CMD_BASE=""
-    if command -v curl >/dev/null 2>&1; then
-        INSTALL_CMD_BASE="curl -fsSL $OHMYZSH_INSTALL_SCRIPT_URL"
-    elif command -v wget >/dev/null 2>&1; then
-        INSTALL_CMD_BASE="wget -qO- $OHMYZSH_INSTALL_SCRIPT_URL"
-    fi
-
-    if [ -n "$INSTALL_CMD_BASE" ]; then
-        echo "Installing Oh My Zsh..."
-        # CHSH=yes attempts to change shell, RUNZSH=no prevents it from starting zsh after install
-        # The "" --unattended arguments are passed to the install script
-        # Using sh -c "..." to execute the downloaded script content
-        env CHSH=no RUNZSH=no sh -c "$(eval "$INSTALL_CMD_BASE")" "" --unattended || echo "Oh My Zsh installer finished, possibly with non-critical errors (e.g., chsh failure in some environments)." >&2
-    else
-        echo "Error: curl or wget not found for Oh My Zsh installation. Skipping." >&2
-    fi
-fi
-
-print_header "Installing zsh-autosuggestions plugin"
-if [ ! -d "$OHMYZSH_DIR" ]; then
-    echo "Oh My Zsh is not installed at $OHMYZSH_DIR. Skipping zsh-autosuggestions plugin." >&2
-elif ! command -v git > /dev/null; then
-    echo "Error: git command not found. zsh-autosuggestions installation requires git. Skipping." >&2
-else
-    ZSH_CUSTOM_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}" # ZSH_CUSTOM usually set by Oh My Zsh sourcing
-    AUTOSUGGESTIONS_PLUGIN_DIR="$ZSH_CUSTOM_DIR/plugins/zsh-autosuggestions"
-    AUTOSUGGESTIONS_REPO_URL="https://github.com/zsh-users/zsh-autosuggestions"
-
-    if [ -d "$AUTOSUGGESTIONS_PLUGIN_DIR/.git" ]; then
-        echo "zsh-autosuggestions already installed. Pulling latest changes..."
-        (cd "$AUTOSUGGESTIONS_PLUGIN_DIR" && git pull)
-    else
-        echo "Cloning zsh-autosuggestions to $AUTOSUGGESTIONS_PLUGIN_DIR..."
-        mkdir -p "$ZSH_CUSTOM_DIR/plugins" # Ensure parent plugins directory exists
-        git clone "$AUTOSUGGESTIONS_REPO_URL" "$AUTOSUGGESTIONS_PLUGIN_DIR"
-    fi
-fi
-
-
-# --- Symlinking Dotfiles ---
+#==========================================================================================
 print_header "Symlinking dotfiles from $DOTFILES_DIR"
+#==========================================================================================
 
-# Symlinking .zshrc
 echo "Symlinking .zshrc, .tmux.conf, ..."
 echo "Source: $DOTFILES_DIR/zshrc -> Target: $HOME/.zshrc"
 ln -sfn "$DOTFILES_DIR/zshrc" "$HOME/.zshrc"
-touch "$HOME/.zshrc.local" # Create an empty local zshrc
+touch "$HOME/.zshrc.local"
 
 echo "Source: $DOTFILES_DIR/tmux.conf -> Target: $HOME/.tmux.conf"
 ln -sfn "$DOTFILES_DIR/tmux.conf" "$HOME/.tmux.conf"
-
 
 echo ""
 echo "Symlinking configurations from $DOTFILES_DIR/config to $HOME/.config/..."
 CONFIG_SOURCE_PARENT_DIR="$DOTFILES_DIR/config"
 CONFIG_TARGET_PARENT_DIR="$HOME/.config"
-
-# Ensure the parent target directory (e.g., $HOME/.config) exists
 mkdir -p "$CONFIG_TARGET_PARENT_DIR"
 
-# Find all top-level items (files and directories) in the source config directory
-# and symlink them directly to the target config directory.
 find "$CONFIG_SOURCE_PARENT_DIR" -mindepth 1 -maxdepth 1 -print0 | while IFS= read -r -d '' source_item_abspath; do
     item_basename=$(basename "$source_item_abspath")
     target_item_abspath="$CONFIG_TARGET_PARENT_DIR/$item_basename"
 
     echo "  Symlinking: $source_item_abspath -> $target_item_abspath"
-    # Use -sfT to ensure the target is treated as the link name itself,
-    # and force overwrite if it exists (even if it's a directory).
-    ln -sfT "$source_item_abspath" "$target_item_abspath"
+    rm -rf "$target_item_abspath" 2>/dev/null || true
+    ln -sfn "$source_item_abspath" "$target_item_abspath"
 done
 
 echo ""
-# Updated section for symlinking executables (this should be fine from previous change)
 print_header "Symlinking executables from $DOTFILES_DIR/bin to $HOME/.local/bin"
 
 SOURCE_BIN_DIR="$DOTFILES_DIR/bin"
 
 if [ -d "$SOURCE_BIN_DIR" ]; then
     echo "Source directory for executables: $SOURCE_BIN_DIR"
-
     echo "Symlinking contents of $SOURCE_BIN_DIR into $TARGET_BIN_DIR..."
     find "$SOURCE_BIN_DIR" -mindepth 1 -maxdepth 1 -print0 | while IFS= read -r -d '' source_script_abspath; do
         script_basename=$(basename "$source_script_abspath")
         target_script_abspath="$TARGET_BIN_DIR/$script_basename"
 
         echo "  Symlinking: $source_script_abspath -> $target_script_abspath"
-        ln -sfn "$source_script_abspath" "$target_script_abspath" # -sfn is usually fine here as individual files are targeted within an existing dir
+        ln -sfn "$source_script_abspath" "$target_script_abspath"
     done
 else
-    echo "Source directory for executables $SOURCE_BIN_DIR not found. Skipping executable symlinking."
+    echo "Source directory for executables $SOURCE_BIN_DIR not found. Skipping."
 fi
 
-
-
-# --- Claude Code Configuration ---
+#==========================================================================================
 print_header "Setting up Claude Code configuration"
+#==========================================================================================
 
 mkdir -p "$HOME/.claude"
 
@@ -325,7 +405,6 @@ if [ -f "$CLAUDE_MD_SOURCE" ]; then
     ln -sfn "$CLAUDE_MD_SOURCE" "$HOME/.claude/CLAUDE.md"
 fi
 
-# --- Claude Code Skills ---
 echo "Symlinking Claude Code skills from $DOTFILES_DIR/claude-skills to $HOME/.claude/skills"
 
 CLAUDE_SKILLS_SOURCE="$DOTFILES_DIR/claude-skills"
@@ -342,8 +421,10 @@ else
     echo "No claude-skills directory found. Skipping."
 fi
 
-# --- Git Configuration ---
+#==========================================================================================
 print_header "Configuring Git global settings"
+#==========================================================================================
+
 if command -v git >/dev/null; then
     echo "Setting git user email: tlrmchlsmth@gmail.com"
     git config --global user.email "tlrmchlsmth@gmail.com"
@@ -355,18 +436,22 @@ else
     echo "Warning: git command not found. Skipping Git global configuration." >&2
 fi
 
-# Install newer version of fzf. Needs to be at least 0.36 and Ubuntu 22.04 ships with 0.29
-FZF_DIR="$HOME/.fzf"
+#==========================================================================================
 print_header "Installing fzf"
+#==========================================================================================
+
+FZF_DIR="$HOME/.fzf"
 if [ -d "$FZF_DIR" ]; then
     echo "FZF already installed at $FZF_DIR. Skipping installation."
 else
-  git clone --depth 1 --branch v0.65.2 https://github.com/junegunn/fzf.git ~/.fzf
+    git clone --depth 1 --branch v0.65.2 https://github.com/junegunn/fzf.git "$FZF_DIR"
 fi
-~/.fzf/install --bin
-ln -sf ~/.fzf/bin/fzf ~/.local/bin/fzf
+"$FZF_DIR/install" --bin
+ln -sf "$FZF_DIR/bin/fzf" "$TARGET_BIN_DIR/fzf"
 
+#==========================================================================================
 print_header "Setup script finished!"
+#==========================================================================================
+
 echo "Review any warnings above."
-echo "If Oh My Zsh was installed or zshrc was updated, please restart your shell or source your .zshrc (e.g., 'source ~/.zshrc') for changes to take full effect."
-echo "If Oh My Zsh changed your default shell (and chsh succeeded), you might need to log out and log back in or start a new zsh shell."
+echo "Restart your shell or run 'source ~/.zshrc' for changes to take effect."
