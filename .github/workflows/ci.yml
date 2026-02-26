@@ -30,6 +30,7 @@ jobs:
           source ~/.zshrc
           nvim --version | head -1
           fzf --version
+          starship --version
           zsh --version
 
   install-container:
@@ -60,4 +61,5 @@ jobs:
           source ~/.zshrc
           nvim --version | head -1
           fzf --version
+          starship --version
           zsh --version

@@ -227,6 +227,31 @@ else
 fi
 
 #==========================================================================================
+print_header "Installing Starship prompt"
+#==========================================================================================
+
+if command -v starship >/dev/null 2>&1; then
+    echo "Starship already installed: $(starship --version)"
+else
+    case "$DISTRO" in
+      arch)
+        if [ -n "$SUDO_CMD" ] || [ "$(id -u)" -eq 0 ]; then
+          $SUDO_CMD pacman -S --noconfirm starship
+        else
+          curl -sS https://starship.rs/install.sh | sh -s -- -y -b "$TARGET_BIN_DIR"
+        fi
+        ;;
+      macos)
+        brew install starship 2>/dev/null || true
+        ;;
+      *)
+        # Universal installer for Ubuntu/Fedora/others
+        curl -sS https://starship.rs/install.sh | sh -s -- -y -b "$TARGET_BIN_DIR"
+        ;;
+    esac
+fi
+
+#==========================================================================================
 print_header "Installing pynvim Python package"
 #==========================================================================================
 
