@@ -1,0 +1,69 @@
+# af-magic inspired starship config
+
+add_newline = false
+
+format = """
+[${fill}](237)\
+$line_break\
+$directory\
+$git_branch\
+$git_status\
+$python\
+$character"""
+
+[fill]
+symbol = '─'
+style = '237'
+
+[directory]
+style = '032'
+truncation_length = 100
+truncate_to_repo = false
+
+[git_branch]
+symbol = ''
+format = '[($symbol$branch)]( blue)'
+
+[git_status]
+style = '214'
+format = '([$all_status$ahead_behind]($style))'
+modified = '*'
+staged = '+'
+untracked = '?'
+conflicted = '!'
+ahead = '⇡'
+behind = '⇣'
+diverged = '⇕'
+
+[python]
+symbol = ''
+format = '[ \($virtualenv\)](yellow)'
+detect_extensions = []
+detect_files = []
+detect_folders = []
+
+[character]
+success_symbol = '[>>](105)'
+error_symbol = '[>>](red)'
+
+[line_break]
+disabled = false
+
+# Disable modules we don't need
+[package]
+disabled = true
+
+[nodejs]
+disabled = true
+
+[rust]
+disabled = true
+
+[golang]
+disabled = true
+
+[java]
+disabled = true
+
+[cmd_duration]
+disabled = true

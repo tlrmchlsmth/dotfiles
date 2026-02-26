@@ -1,8 +1,14 @@
 # --- Dotfiles location (resolved from symlink) ---
 DOTFILES_DIR="${${(%):-%x}:A:h}"
 
-# --- Prompt and git aliases ---
-source "$DOTFILES_DIR/zsh/prompt.zsh"
+# --- Prompt ---
+if command -v starship &>/dev/null; then
+  eval "$(starship init zsh)"
+else
+  source "$DOTFILES_DIR/zsh/prompt.zsh"
+fi
+
+# --- Git aliases ---
 source "$DOTFILES_DIR/zsh/git-aliases.zsh"
 
 # --- Plugins ---
