@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Git
+
+- Always use `--signoff` (`-s`) when creating git commits.
+
 ## Overview
 
 This is a personal dotfiles repository for Ubuntu 22.04/Linux development environments. It manages configuration for:
