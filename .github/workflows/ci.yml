@@ -25,8 +25,9 @@ jobs:
       - name: Run install.sh
         run: bash install.sh
       - name: Verify key binaries
+        shell: zsh {0}
         run: |
-          export PATH="$HOME/.local/bin:$PATH"
+          source ~/.zshrc
           nvim --version | head -1
           fzf --version
           zsh --version
@@ -54,8 +55,9 @@ jobs:
       - name: Run install.sh
         run: bash install.sh
       - name: Verify key binaries
+        shell: zsh {0}
         run: |
-          export PATH="$HOME/.local/bin:$PATH"
+          source ~/.zshrc
           nvim --version | head -1
           fzf --version
           zsh --version
