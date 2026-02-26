@@ -26,6 +26,7 @@ jobs:
         run: bash install.sh
       - name: Verify key binaries
         run: |
+          export PATH="$HOME/.local/bin:$PATH"
           nvim --version | head -1
           fzf --version
           zsh --version
@@ -54,6 +55,7 @@ jobs:
         run: bash install.sh
       - name: Verify key binaries
         run: |
+          export PATH="$HOME/.local/bin:$PATH"
           nvim --version | head -1
           fzf --version
           zsh --version
