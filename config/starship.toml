@@ -1,35 +1,35 @@
-# af-magic inspired starship config
+# Starship prompt config
 
-add_newline = false
+add_newline = true
 
 format = """
-[${fill}](237)\
+$hostname$directory$git_branch$git_status$python\
+$fill\
+$time\
 $line_break\
-$directory\
-$git_branch\
-$git_status\
-$python\
 $character"""
 
-[fill]
-symbol = '─'
-style = '237'
+[hostname]
+ssh_only = false
+style = 'green'
+format = '[$hostname](bold $style):'
 
 [directory]
-style = '032'
-truncation_length = 100
-truncate_to_repo = false
+style = 'cyan'
+truncation_length = 5
+truncate_to_repo = true
 
 [git_branch]
 symbol = ''
-format = '[($symbol$branch)]( blue)'
+format = ' [$branch](blue)'
 
 [git_status]
 style = '214'
-format = '([$all_status$ahead_behind]($style))'
+format = '[$all_status$ahead_behind]($style)'
 modified = '*'
 staged = '+'
-untracked = '?'
+untracked = ''
+stashed = ''
 conflicted = '!'
 ahead = '⇡'
 behind = '⇣'
@@ -37,10 +37,19 @@ diverged = '⇕'
 
 [python]
 symbol = ''
-format = '[ \($virtualenv\)](yellow)'
+format = ' [($virtualenv)](yellow)'
 detect_extensions = []
 detect_files = []
 detect_folders = []
+
+[fill]
+symbol = ' '
+
+[time]
+disabled = false
+style = '237'
+format = '[$time]($style)'
+time_format = '%H:%M:%S'
 
 [character]
 success_symbol = '[>>](105)'
@@ -49,7 +58,7 @@ error_symbol = '[>>](red)'
 [line_break]
 disabled = false
 
-# Disable modules we don't need
+# Disable noisy modules
 [package]
 disabled = true
 
