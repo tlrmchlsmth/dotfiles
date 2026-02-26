@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  install:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: Ubuntu (latest)
+          - os: ubuntu-22.04
+            name: Ubuntu 22.04
+          - os: macos-latest
+            name: macOS
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.name }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run install.sh
+        run: bash install.sh
+      - name: Verify key binaries
+        run: |
+          nvim --version | head -1
+          fzf --version
+          zsh --version
+
+  install-container:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - container: fedora:latest
+            name: Fedora
+          - container: archlinux:latest
+            name: Arch Linux
+    runs-on: ubuntu-latest
+    container: ${{ matrix.container }}
+    name: ${{ matrix.name }}
+    steps:
+      - name: Install git (Fedora)
+        if: contains(matrix.container, 'fedora')
+        run: dnf install -y git
+      - name: Install git (Arch)
+        if: contains(matrix.container, 'archlinux')
+        run: pacman -Sy --noconfirm git
+      - uses: actions/checkout@v4
+      - name: Run install.sh
+        run: bash install.sh
+      - name: Verify key binaries
+        run: |
+          nvim --version | head -1
+          fzf --version
+          zsh --version

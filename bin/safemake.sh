@@ -23,4 +23,5 @@ for OPT in $@; do
   fi                                                          
   ((OPTIND++))                                                     
 done                                                           
-exec /usr/bin/make "$@"
+REAL_MAKE="$(command -v make 2>/dev/null || echo /usr/bin/make)"
+exec "$REAL_MAKE" "$@"
