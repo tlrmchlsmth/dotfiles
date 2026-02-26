@@ -318,23 +318,34 @@ else
 fi
 
 #==========================================================================================
-print_header "Installing zsh-autosuggestions plugin"
+print_header "Installing zsh plugins"
 #==========================================================================================
 
 ZSH_PLUGINS_DIR="$HOME/.zsh/plugins"
-AUTOSUGGESTIONS_DIR="$ZSH_PLUGINS_DIR/zsh-autosuggestions"
-AUTOSUGGESTIONS_REPO_URL="https://github.com/zsh-users/zsh-autosuggestions"
+mkdir -p "$ZSH_PLUGINS_DIR"
 
-if ! command -v git > /dev/null; then
-    echo "Error: git not found. Skipping zsh-autosuggestions." >&2
-elif [ -d "$AUTOSUGGESTIONS_DIR/.git" ]; then
-    echo "zsh-autosuggestions already installed. Pulling latest..."
-    (cd "$AUTOSUGGESTIONS_DIR" && git pull) || true
-else
-    echo "Cloning zsh-autosuggestions to $AUTOSUGGESTIONS_DIR..."
-    mkdir -p "$ZSH_PLUGINS_DIR"
-    git clone "$AUTOSUGGESTIONS_REPO_URL" "$AUTOSUGGESTIONS_DIR"
-fi
+install_zsh_plugin() {
+    local name="$1"
+    local repo_url="$2"
+    local dest="$ZSH_PLUGINS_DIR/$name"
+
+    if ! command -v git > /dev/null; then
+        echo "Error: git not found. Skipping $name." >&2
+        return
+    fi
+
+    if [ -d "$dest/.git" ]; then
+        echo "$name already installed. Pulling latest..."
+        (cd "$dest" && git pull) || true
+    else
+        echo "Cloning $name..."
+        git clone "$repo_url" "$dest"
+    fi
+}
+
+install_zsh_plugin "zsh-autosuggestions" "https://github.com/zsh-users/zsh-autosuggestions"
+install_zsh_plugin "fzf-tab" "https://github.com/Aloxaf/fzf-tab"
+install_zsh_plugin "zsh-completions" "https://github.com/zsh-users/zsh-completions"
 
 #==========================================================================================
 print_header "Symlinking dotfiles from $DOTFILES_DIR"

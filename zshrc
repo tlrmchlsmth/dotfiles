@@ -6,6 +6,15 @@ source "$DOTFILES_DIR/zsh/prompt.zsh"
 source "$DOTFILES_DIR/zsh/git-aliases.zsh"
 
 # --- Plugins ---
+# Extra completions (must be added to fpath before compinit)
+[[ -d "$HOME/.zsh/plugins/zsh-completions/src" ]] && \
+  fpath=("$HOME/.zsh/plugins/zsh-completions/src" $fpath)
+
+# fzf-tab (must be sourced before compinit-dependent plugins)
+[[ -f "$HOME/.zsh/plugins/fzf-tab/fzf-tab.plugin.zsh" ]] && \
+  source "$HOME/.zsh/plugins/fzf-tab/fzf-tab.plugin.zsh"
+
+# Inline history suggestions
 [[ -f "$HOME/.zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh" ]] && \
   source "$HOME/.zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh"
 
@@ -42,6 +51,13 @@ zstyle ':completion:*:kill:*' command 'ps -u $USER -o pid,%cpu,tty,cputime,cmd'
 
 autoload -Uz compinit
 compinit
+
+# --- fzf integration (Ctrl-R: history, Ctrl-T: files, Alt-C: cd) ---
+source <(fzf --zsh) 2>/dev/null
+
+# fzf-tab styling
+zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls -1 --color=always $realpath 2>/dev/null || ls -1 $realpath'
+zstyle ':fzf-tab:*' fzf-flags --height=~50%
 
 # --- Aliases ---
 alias vi=nvim
