@@ -44,7 +44,6 @@ zstyle ':completion:*' format 'Completing %d'
 zstyle ':completion:*' group-name ''
 zstyle ':completion:*' menu select=2
 zstyle ':completion:*:default' list-colors ${(s.:.)LS_COLORS}
-zstyle ':completion:*' list-colors ''
 zstyle ':completion:*' list-prompt %SAt %p: Hit TAB for more, or the character to insert%s
 zstyle ':completion:*' matcher-list '' 'm:{a-z}={A-Z}' 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=* l:|=*'
 zstyle ':completion:*' menu select=long
@@ -64,6 +63,19 @@ source <(fzf --zsh) 2>/dev/null
 # fzf-tab styling
 zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls -1 --color=always $realpath 2>/dev/null || ls -1 $realpath'
 zstyle ':fzf-tab:*' fzf-flags --height=~50%
+
+# --- Colors ---
+if (( $+commands[dircolors] )); then
+    eval "$(dircolors -b)"
+elif (( $+commands[gdircolors] )); then
+    eval "$(gdircolors -b)"
+fi
+
+if ls --color=auto / &>/dev/null; then
+    alias ls='ls --color=auto'
+else
+    alias ls='ls -G'
+fi
 
 # --- Aliases ---
 alias vi=nvim
