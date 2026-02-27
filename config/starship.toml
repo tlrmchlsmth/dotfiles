@@ -37,7 +37,7 @@ diverged = '⇕'
 
 [python]
 symbol = ''
-format = ' [(\($virtualenv\))](yellow)'
+format = '[(\($virtualenv\))](yellow)'
 detect_extensions = []
 detect_files = []
 detect_folders = []
