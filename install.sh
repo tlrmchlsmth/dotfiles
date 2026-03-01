@@ -115,7 +115,7 @@ case "$DISTRO" in
     if [ -n "$SUDO_CMD" ] || [ "$(id -u)" -eq 0 ]; then
       env DEBIAN_FRONTEND=noninteractive $SUDO_CMD apt-get update -qq
       env DEBIAN_FRONTEND=noninteractive $SUDO_CMD apt-get install -y \
-        git curl zsh ripgrep bat python3-pip python3-venv tmux
+        git curl zsh ripgrep bat python3-pip python3-venv tmux unzip
     else
       echo "Skipping apt package installation (no sudo access)."
     fi
@@ -123,7 +123,7 @@ case "$DISTRO" in
   fedora)
     if [ -n "$SUDO_CMD" ] || [ "$(id -u)" -eq 0 ]; then
       $SUDO_CMD dnf install -y \
-        git curl zsh ripgrep bat python3-pip tmux
+        git curl zsh ripgrep bat python3-pip tmux unzip
     else
       echo "Skipping dnf package installation (no sudo access)."
     fi
@@ -131,7 +131,7 @@ case "$DISTRO" in
   arch)
     if [ -n "$SUDO_CMD" ] || [ "$(id -u)" -eq 0 ]; then
       $SUDO_CMD pacman -Sy --noconfirm \
-        git curl zsh ripgrep bat python-pip tmux
+        git curl zsh ripgrep bat python-pip tmux unzip
     else
       echo "Skipping pacman package installation (no sudo access)."
     fi
