@@ -252,6 +252,49 @@ else
 fi
 
 #==========================================================================================
+print_header "Installing Nerd Font (Hack)"
+#==========================================================================================
+
+NERD_FONT_VERSION="v3.3.0"
+NERD_FONT_NAME="Hack"
+
+install_nerd_font_linux() {
+    local font_dir="$HOME/.local/share/fonts/${NERD_FONT_NAME}NerdFont"
+    if [ -d "$font_dir" ] && ls "$font_dir"/*.ttf >/dev/null 2>&1; then
+        echo "${NERD_FONT_NAME} Nerd Font already installed at $font_dir."
+        return
+    fi
+
+    local zip_url="https://github.com/ryanoasis/nerd-fonts/releases/download/${NERD_FONT_VERSION}/${NERD_FONT_NAME}.zip"
+    echo "Downloading ${NERD_FONT_NAME} Nerd Font from $zip_url ..."
+    local tmp_zip
+    tmp_zip="$(mktemp)"
+    curl -fsSL -o "$tmp_zip" "$zip_url"
+
+    mkdir -p "$font_dir"
+    unzip -o -q "$tmp_zip" -d "$font_dir"
+    rm -f "$tmp_zip"
+
+    if command -v fc-cache >/dev/null 2>&1; then
+        fc-cache -f "$font_dir"
+    fi
+    echo "${NERD_FONT_NAME} Nerd Font installed to $font_dir."
+}
+
+case "$DISTRO" in
+  macos)
+    if brew list --cask font-hack-nerd-font >/dev/null 2>&1; then
+        echo "${NERD_FONT_NAME} Nerd Font already installed via Homebrew."
+    else
+        brew install --cask font-hack-nerd-font 2>/dev/null || true
+    fi
+    ;;
+  *)
+    install_nerd_font_linux
+    ;;
+esac
+
+#==========================================================================================
 print_header "Installing pynvim Python package"
 #==========================================================================================
 

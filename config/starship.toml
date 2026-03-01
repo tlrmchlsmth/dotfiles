@@ -16,12 +16,13 @@ format = '[$hostname](bold $style):'
 
 [directory]
 style = 'cyan'
+format = '[$path]($style)'
 truncation_length = 5
 truncate_to_repo = true
 
 [git_branch]
-symbol = ''
-format = ' [$branch](blue)'
+symbol = ''
+format = ' [$symbol$branch](blue)'
 
 [git_status]
 style = '214'
@@ -36,8 +37,8 @@ behind = '⇣'
 diverged = '⇕'
 
 [python]
-symbol = ''
-format = '[(\($virtualenv\))](yellow)'
+symbol = ''
+format = ' [$symbol$virtualenv](yellow)'
 detect_extensions = []
 detect_files = []
 detect_folders = []
