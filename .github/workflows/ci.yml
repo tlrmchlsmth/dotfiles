@@ -32,6 +32,14 @@ jobs:
           fzf --version
           starship --version
           zsh --version
+      - name: Verify nvim starts without errors
+        run: |
+          output=$(nvim --headless -c 'qa!' 2>&1)
+          echo "$output"
+          if echo "$output" | grep -qi 'error'; then
+            echo "FAIL: nvim produced errors on startup"
+            exit 1
+          fi
 
   install-container:
     strategy:
@@ -63,3 +71,11 @@ jobs:
           fzf --version
           starship --version
           zsh --version
+      - name: Verify nvim starts without errors
+        run: |
+          output=$(nvim --headless -c 'qa!' 2>&1)
+          echo "$output"
+          if echo "$output" | grep -qi 'error'; then
+            echo "FAIL: nvim produced errors on startup"
+            exit 1
+          fi
