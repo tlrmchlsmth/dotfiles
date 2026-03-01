@@ -10,6 +10,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - Prefer to use Justfile commands when available.
 
+## Python
+
+- Always use `uv` instead of bare `pip` for installing packages and managing dependencies.
+
 ## Overview
 
 This is a personal dotfiles repository for cross-platform development environments (Ubuntu, Fedora, Arch, macOS). It manages configuration for:
