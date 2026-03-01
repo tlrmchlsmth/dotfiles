@@ -1,5 +1,7 @@
 -- ~/.config/nvim/lua/plugins/init.lua
 
+local icons = require('core.icons')
+
 return {
   -- ========== Core Essentials ==========
   { 'tpope/vim-fugitive' },
@@ -18,10 +20,6 @@ return {
       vim.api.nvim_set_hl(0, 'LspDiagnosticsVirtualTextWarning', { fg = '#FABD2F', bg = 'NONE', bold = true, italic = true, underline = true })
       vim.api.nvim_set_hl(0, 'LspDiagnosticsVirtualTextInformation', { fg = '#83A598', bg = 'NONE', bold = true, italic = true, underline = true })
       vim.api.nvim_set_hl(0, 'LspDiagnosticsVirtualTextHint', { fg = '#B8BB26', bg = 'NONE', bold = true, italic = true, underline = true })
-      -- Optional: Perturb color setup (ensure utils/theme.lua and the function exist)
-      -- vim.defer_fn(function()
-      --   pcall(function() require('utils.theme').setup_perturb() end)
-      -- end, 200)
     end,
   },
 
@@ -33,8 +31,8 @@ return {
       options = {
         theme = 'gruvbox',
         icons_enabled = true,
-        component_separators = { left = '', right = ''}, -- Nerd Font
-        section_separators = { left = '', right = ''}, -- Nerd Font
+        component_separators = { left = icons.separators.component_left, right = icons.separators.component_right },
+        section_separators = { left = icons.separators.section_left, right = icons.separators.section_right },
         disabled_filetypes = { statusline = {}, winbar = {} },
         ignore_focus = {},
         always_divide_middle = true,
@@ -66,7 +64,7 @@ return {
     opts = {
       position = "bottom", height = 10, width = 50, icons = true,
       mode = "workspace_diagnostics",
-      fold_open = "▾", fold_closed = "▸", -- Nerd Font
+      fold_open = icons.fold.open, fold_closed = icons.fold.closed,
       action_keys = {
           close = "q", cancel = "<esc>", refresh = "r",
           jump = {"<cr>", "<tab>"}, open_split = { "<c-x>" },
@@ -78,179 +76,89 @@ return {
       },
       indent_lines = true, auto_open = false, auto_close = false,
       auto_preview = true, auto_fold = false,
-      signs = { error = "", warning = "", hint = "", information = "", other = "﫠" }, -- Nerd Font
+      signs = {
+        error = icons.diagnostic.error,
+        warning = icons.diagnostic.warning,
+        hint = icons.diagnostic.hint,
+        information = icons.diagnostic.info,
+        other = icons.diagnostic.other,
+      },
       use_lsp_diagnostic_signs = false
     },
   },
 
-  -- ========== Mason and LSP Setup ==========
+  -- ========== Mason (package manager for LSP servers) ==========
   {
     'williamboman/mason.nvim',
     build = ":MasonUpdate",
-    event = "VeryLazy", -- Ensures it loads and configures on startup, available for other plugins.
-                       -- Or remove 'event' entirely if you want it to load only when a dependent plugin pulls it in.
-                       -- 'VeryLazy' is a good default for foundational plugins.
-    config = function()
-      vim.notify("[Mason] Attempting setup...", vim.log.levels.INFO, {title = "Plugin Setup"})
-      local status_ok, res = pcall(require("mason").setup, {
-        ui = {
-          border = "rounded",
-          icons = { package_installed = "✓", package_pending = "➜", package_uninstalled = "✗" }
+    event = "VeryLazy",
+    opts = {
+      ui = {
+        border = "rounded",
+        icons = {
+          package_installed = icons.mason.installed,
+          package_pending = icons.mason.pending,
+          package_uninstalled = icons.mason.uninstalled,
         }
-      })
-      if not status_ok then
-        vim.notify("[Mason] ERROR setting up: " .. tostring(res), vim.log.levels.ERROR, {title = "Plugin Error"})
-      else
-        vim.notify("[Mason] Setup complete.", vim.log.levels.INFO, {title = "Plugin Setup"})
-      end
-    end,
-  },
-
-    -- ========== Mason and LSP Setup ==========
-  {
-    'williamboman/mason.nvim',
-    build = ":MasonUpdate",
-    event = "VeryLazy", -- Ensures Mason is set up early and available.
-    config = function()
-      require("mason").setup({
-        ui = {
-          border = "rounded",
-          icons = { package_installed = "✓", package_pending = "➜", package_uninstalled = "✗" }
-        }
-      })
-      -- You can add a vim.notify here if you like to confirm Mason setup, e.g.:
-      -- vim.notify("Mason setup complete.", vim.log.levels.INFO, {title = "Plugins"})
-    end,
+      }
+    },
   },
 
   {
     'williamboman/mason-lspconfig.nvim',
-    dependencies = {'williamboman/mason.nvim'},
-    -- No explicit event needed here if nvim-lspconfig (which depends on this)
-    -- is triggered by an event like "BufReadPre". Lazy.nvim will handle the load order.
-    config = function()
-      -- Define on_attach and capabilities here, or make them accessible from an outer scope.
-      local capabilities = vim.lsp.protocol.make_client_capabilities()
-      -- If you use nvim-cmp for completion, integrate its capabilities:
-      -- capabilities = require('cmp_nvim_lsp').default_capabilities(capabilities)
-
-      local on_attach = function(client, bufnr)
-        -- Optional: Notify which LSP client attached to which buffer.
-        vim.notify("LSP attached: " .. client.name .. " to buffer " .. bufnr, vim.log.levels.INFO, { title = "LSP" })
-
-        local map = vim.keymap.set
-        local lsp_opts = { noremap = true, silent = true, buffer = bufnr, desc = "LSP" }
-
-        map('n', 'gD', '<cmd>lua vim.lsp.buf.declaration()<CR>', vim.tbl_extend('keep', lsp_opts, { desc = 'LSP Declaration' }))
-        map('n', 'gd', '<cmd>lua vim.lsp.buf.definition()<CR>', vim.tbl_extend('keep', lsp_opts, { desc = 'LSP Definition' }))
-        map('n', 'K', '<cmd>lua vim.lsp.buf.hover()<CR>', vim.tbl_extend('keep', lsp_opts, { desc = 'LSP Hover' }))
-        map('n', 'gi', '<cmd>lua vim.lsp.buf.implementation()<CR>', vim.tbl_extend('keep', lsp_opts, { desc = 'LSP Implementation' }))
-        map('n', '<leader>sh', '<cmd>lua vim.lsp.buf.signature_help()<CR>', vim.tbl_extend('keep', lsp_opts, { desc = 'LSP Signature Help' }))
-        map('n', '<leader>wa', '<cmd>lua vim.lsp.buf.add_workspace_folder()<CR>', vim.tbl_extend('keep', lsp_opts, { desc = 'LSP Add Workspace Folder' }))
-        map('n', '<leader>wr', '<cmd>lua vim.lsp.buf.remove_workspace_folder()<CR>', vim.tbl_extend('keep', lsp_opts, { desc = 'LSP Remove Workspace Folder' }))
-        map('n', '<leader>wl', '<cmd>lua print(vim.inspect(vim.lsp.buf.list_workspace_folders()))<CR>', vim.tbl_extend('keep', lsp_opts, { desc = 'LSP List Workspace Folders' }))
-        map('n', '<leader>D', '<cmd>lua vim.lsp.buf.type_definition()<CR>', vim.tbl_extend('keep', lsp_opts, { desc = 'LSP Type Definition' }))
-        map('n', '<leader>rn', '<cmd>lua vim.lsp.buf.rename()<CR>', vim.tbl_extend('keep', lsp_opts, { desc = 'LSP Rename' }))
-        map({'n', 'v'}, '<leader>ca', '<cmd>lua vim.lsp.buf.code_action()<CR>', vim.tbl_extend('keep', lsp_opts, { desc = 'LSP Code Action' }))
-        map('n', 'gr', '<cmd>lua vim.lsp.buf.references()<CR>', vim.tbl_extend('keep', lsp_opts, { desc = 'LSP References' }))
-        map('n', '<leader>e', '<cmd>lua vim.diagnostic.open_float({scope = "line"})<CR>', vim.tbl_extend('keep', lsp_opts, { desc = 'LSP Line Diagnostics' }))
-        map('n', '[d', '<cmd>lua vim.diagnostic.goto_prev()<CR>', vim.tbl_extend('keep', lsp_opts, { desc = 'LSP Prev Diagnostic' }))
-        map('n', ']d', '<cmd>lua vim.diagnostic.goto_next()<CR>', vim.tbl_extend('keep', lsp_opts, { desc = 'LSP Next Diagnostic' }))
-        map('n', '<leader>qf', '<cmd>lua vim.diagnostic.setloclist()<CR>', vim.tbl_extend('keep', lsp_opts, { desc = 'LSP Diagnostics to Loclist' }))
-
-        if client.supports_method("textDocument/formatting") then
-          map({'n', 'v'}, '<leader>lf', function() vim.lsp.buf.format({ async = true, bufnr = bufnr }) end, vim.tbl_extend('keep', lsp_opts, { desc = 'LSP Format Document' }))
-        end
-        -- Your C++/Header switching keymaps from core/keymaps.lua should still work independently.
-      end
-
-      local lspconfig_pkg = require('lspconfig') -- Get the lspconfig package
-
-      require("mason-lspconfig").setup({
-        ensure_installed = {
-          "lua_ls",
-          "ty",
-          "rust_analyzer"
-        },
-        automatic_installation = false, -- Recommended to keep false and manage installs via Mason
-        handlers = {
-          -- Default handler for servers not explicitly customized below
-          function(server_name)
-            lspconfig_pkg[server_name].setup({
-              on_attach = on_attach,
-              capabilities = capabilities,
-              flags = { debounce_text_changes = 150 },
-            })
-          end,
-          -- Custom setup for lua_ls
-          ["lua_ls"] = function()
-            lspconfig_pkg.lua_ls.setup({
-              on_attach = on_attach,
-              capabilities = capabilities,
-              settings = {
-                Lua = {
-                  runtime = { version = 'LuaJIT' },
-                  diagnostics = { globals = { 'vim' }, disable = {'undefined-global', 'missing-fields'} },
-                  workspace = { library = vim.api.nvim_get_runtime_file("", true), checkThirdParty = false },
-                  completion = { callSnippet = "Replace" },
-                  telemetry = { enable = false },
-                },
-              },
-              flags = { debounce_text_changes = 150 },
-            })
-          end,
-          -- Custom setup for ty (Astral's Python language server)
-          ["ty"] = function()
-            lspconfig_pkg.ty.setup({
-              on_attach = on_attach,
-              capabilities = capabilities,
-              settings = {
-                ty = {
-                  diagnosticMode = 'workspace', -- 'workspace' or 'openFilesOnly'
-                },
-              },
-              flags = { debounce_text_changes = 150 },
-            })
-          end,
-          -- rust_analyzer will use the default handler unless specified.
-        }
-      })
-    end,
+    dependencies = { 'williamboman/mason.nvim' },
+    opts = {
+      ensure_installed = { "lua_ls", "rust_analyzer" },
+      automatic_installation = false,
+    },
   },
 
-
+  -- ========== LSP Configuration (Neovim 0.11 native API) ==========
+  -- Keymaps are in core/autocmds.lua via LspAttach autocmd
   {
     'neovim/nvim-lspconfig',
     event = { "BufReadPre", "BufNewFile" },
     dependencies = {
       'williamboman/mason.nvim',
-      'williamboman/mason-lspconfig.nvim', 
-      { 'j-hui/fidget.nvim', tag = "legacy", opts = {} }, 
+      'williamboman/mason-lspconfig.nvim',
+      { 'j-hui/fidget.nvim', tag = "legacy", opts = {} },
     },
     config = function()
-      -- LSP server setups are now primarily handled by mason-lspconfig's handlers.
-      -- This block is for global LSP settings, diagnostics, or LSPs not managed by mason-lspconfig.
+      vim.lsp.config('lua_ls', {
+        settings = {
+          Lua = {
+            runtime = { version = 'LuaJIT' },
+            diagnostics = { globals = { 'vim' }, disable = {'undefined-global', 'missing-fields'} },
+            workspace = { library = vim.api.nvim_get_runtime_file("", true), checkThirdParty = false },
+            completion = { callSnippet = "Replace" },
+            telemetry = { enable = false },
+          },
+        },
+      })
 
-      -- Define your diagnostic icons
-      local diagnostic_icons = {
-        Error = "", -- Icon for errors
-        Warn  = "", -- Icon for warnings
-        Hint  = "", -- Icon for hints
-        Info  = ""  -- Icon for information
-      }
+      vim.lsp.config('ty', {
+        cmd = { 'ty', 'server' },
+        filetypes = { 'python' },
+        root_markers = { 'pyproject.toml', 'setup.py', 'setup.cfg', '.git' },
+      })
 
-      -- Configure diagnostic signs and appearance
+      vim.lsp.config('rust_analyzer', {})
+
+      vim.lsp.enable('lua_ls')
+      vim.lsp.enable('rust_analyzer')
+      if vim.fn.executable('ty') == 1 then
+        vim.lsp.enable('ty')
+      end
+
       vim.diagnostic.config({
-        virtual_text = false, 
-        signs = { -- Configure signs with your icons
+        virtual_text = false,
+        signs = {
           text = {
-            [vim.diagnostic.severity.ERROR] = diagnostic_icons.Error,
-            [vim.diagnostic.severity.WARN]  = diagnostic_icons.Warn,
-            [vim.diagnostic.severity.HINT]  = diagnostic_icons.Hint,
-            [vim.diagnostic.severity.INFO]  = diagnostic_icons.Info,
+            [vim.diagnostic.severity.ERROR] = icons.diagnostic.error,
+            [vim.diagnostic.severity.WARN]  = icons.diagnostic.warning,
+            [vim.diagnostic.severity.HINT]  = icons.diagnostic.hint,
+            [vim.diagnostic.severity.INFO]  = icons.diagnostic.info,
           }
-          -- Neovim will use standard highlight groups like DiagnosticSignError,
-          -- DiagnosticSignWarn, etc. These are typically defined by your colorscheme.
         },
         underline = true,
         update_in_insert = false,
@@ -259,56 +167,43 @@ return {
     end,
   },
 
-
   -- ========== Fuzzy Finding ==========
-    {
+  {
     'ibhagwan/fzf-lua',
     dependencies = { 'nvim-tree/nvim-web-devicons' },
     config = function()
-      -- 1. Define your list of patterns to exclude
       local exclude_patterns = {
-        ".git",
-        ".venv",
-        ".mypy_cache",
-        "__pycache__",
-        ".github",
-        ".deps",
-        ".ruff_cache",
-        "*.so",
-        "*.o"
-        -- Add more patterns here as needed
+        ".git", ".venv", ".mypy_cache", "__pycache__",
+        ".github", ".deps", ".ruff_cache", "*.so", "*.o"
       }
 
-      -- 2. Build the 'fd' command string
       local fd_command_parts = {"fd --type f --hidden --follow"}
       for _, pattern in ipairs(exclude_patterns) do
         table.insert(fd_command_parts, "--exclude " .. pattern)
       end
       local fd_command_str = table.concat(fd_command_parts, " ")
 
-      -- 3. Build the 'find' command string
       local find_name_conditions = {}
       for _, pattern in ipairs(exclude_patterns) do
         table.insert(find_name_conditions, "-name " .. pattern)
       end
-      
+
       local find_prune_section = ""
       if #find_name_conditions > 0 then
         find_prune_section = "\\( " .. table.concat(find_name_conditions, " -o ") .. " \\) -prune -o "
       end
       local find_command_str = "find . " .. find_prune_section .. "-type f -print"
 
-      -- 4. Setup fzf-lua using the generated commands
       require('fzf-lua').setup({
-        winopts = { }, -- Your existing winopts
-        keymap = {    -- Your existing keymap
+        winopts = { },
+        keymap = {
           default = { ["<c-s>"] = "split", ["<c-v>"] = "vsplit", ["<c-t>"] = "tabedit" },
           fzf = { ["ctrl-d"] = "preview-page-down", ["ctrl-u"] = "preview-page-up" },
         },
         files = {
           cmd = vim.fn.executable("fd") == 1 and fd_command_str or find_command_str,
         },
-        live_grep_native = { -- Your existing live_grep_native config
+        live_grep_native = {
           cmd = "rg --color=always --line-number --no-heading --smart-case ''"
         },
       })
@@ -334,16 +229,41 @@ return {
         icons = {
             show = { file = true, folder = true, folder_arrow = true, git = true, diagnostics = true },
             glyphs = {
-                default = "", symlink = "",
-                folder = { arrow_closed = "▸", arrow_open = "▾", default = "", open = "", empty = "", empty_open = "", symlink = "", symlink_open = "" },
-                git = { unstaged = "", staged = "✓", unmerged = "", renamed = "➜", untracked = "U", deleted = "✗", ignored = "◌" },
+                default = icons.file.default, symlink = icons.file.symlink,
+                folder = {
+                  arrow_closed = icons.folder.arrow_closed,
+                  arrow_open = icons.folder.arrow_open,
+                  default = icons.folder.default,
+                  open = icons.folder.open,
+                  empty = icons.folder.empty,
+                  empty_open = icons.folder.empty_open,
+                  symlink = icons.folder.symlink,
+                  symlink_open = icons.folder.symlink_open,
+                },
+                git = {
+                  unstaged = icons.git.unstaged,
+                  staged = icons.git.staged,
+                  unmerged = icons.git.unmerged,
+                  renamed = icons.git.renamed,
+                  untracked = icons.git.untracked,
+                  deleted = icons.git.deleted,
+                  ignored = icons.git.ignored,
+                },
             },
         },
       },
       filters = { dotfiles = false, custom = { ".git", "node_modules", ".cache", "__pycache__" }, exclude = {} },
       git = { enable = true, ignore = false, timeout = 400 },
       update_focused_file = { enable = true, update_root = false },
-      diagnostics = { enable = true, show_on_dirs = true, icons = { hint = "", info = "", warning = "", error = "" } },
+      diagnostics = {
+        enable = true, show_on_dirs = true,
+        icons = {
+          hint = icons.diagnostic.hint,
+          info = icons.diagnostic.info,
+          warning = icons.diagnostic.warning,
+          error = icons.diagnostic.error,
+        },
+      },
       actions = { open_file = { quit_on_open = false, resize_window = true, window_picker = { enable = true, chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890", exclude = { filetype = { "notify", "packer", "qf", "diff", "fugitive", "fugitiveblame" }, buftype = { "nofile", "terminal", "help" } } } } },
     },
   },
@@ -362,4 +282,3 @@ return {
     opts = {},
   },
 }
-
