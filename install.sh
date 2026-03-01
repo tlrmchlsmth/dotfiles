@@ -295,6 +295,18 @@ case "$DISTRO" in
 esac
 
 #==========================================================================================
+print_header "Installing ty (Python language server)"
+#==========================================================================================
+
+if command -v uv >/dev/null 2>&1; then
+    uv tool install ty@latest 2>/dev/null || uv tool upgrade ty 2>/dev/null || true
+elif command -v pipx >/dev/null 2>&1; then
+    pipx install ty 2>/dev/null || pipx upgrade ty 2>/dev/null || true
+else
+    echo "Warning: uv and pipx not found. Install ty manually: uv tool install ty" >&2
+fi
+
+#==========================================================================================
 print_header "Installing pynvim Python package"
 #==========================================================================================
 
@@ -459,6 +471,18 @@ if [ -d "$SOURCE_BIN_DIR" ]; then
     done
 else
     echo "Source directory for executables $SOURCE_BIN_DIR not found. Skipping."
+fi
+
+#==========================================================================================
+print_header "Syncing Neovim plugins (lazy.nvim)"
+#==========================================================================================
+
+if command -v nvim >/dev/null 2>&1; then
+    echo "Running lazy.nvim sync (install/update plugins)..."
+    nvim --headless "+Lazy! sync" +qa 2>&1 || echo "Warning: lazy.nvim sync failed." >&2
+    echo "Neovim plugins synced."
+else
+    echo "Warning: nvim not found, skipping plugin sync." >&2
 fi
 
 #==========================================================================================
