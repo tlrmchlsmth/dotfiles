@@ -48,9 +48,9 @@ symbol = ' '
 
 [time]
 disabled = false
-style = '237'
+style = '250'
 format = '[$time]($style)'
-time_format = '%H:%M:%S'
+time_format = '%a %b %d %H:%M:%S'
 
 [character]
 success_symbol = '[>>](105)'
