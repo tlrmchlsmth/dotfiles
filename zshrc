@@ -1,6 +1,10 @@
 # --- Dotfiles location (resolved from symlink) ---
 DOTFILES_DIR="${${(%):-%x}:A:h}"
 
+# --- PATH (early, so tools like starship/fzf are available below) ---
+export PATH=$HOME/.local/bin:$PATH
+export PATH="$HOME/go/bin:$PATH"
+
 # --- Prompt ---
 if command -v starship &>/dev/null; then
   eval "$(starship init zsh)"
@@ -88,10 +92,6 @@ if [[ "$(uname 2> /dev/null)" == "Linux" ]]; then
 fi
 
 alias make=safemake.sh
-
-# --- PATH ---
-export PATH=$HOME/.local/bin:$PATH
-export PATH="$HOME/go/bin:$PATH"
 
 # --- CUDA (only if present) ---
 if [[ -d /usr/local/cuda ]]; then
