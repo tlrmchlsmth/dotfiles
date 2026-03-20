@@ -148,11 +148,11 @@ function _auto_venv() {
 
   if [[ -n "$venv_path" ]]; then
     if [[ "$VIRTUAL_ENV" != "$venv_path" ]]; then
-      [[ -n "$VIRTUAL_ENV" ]] && deactivate
+      [[ -n "$VIRTUAL_ENV" ]] && type deactivate &>/dev/null && deactivate
       source "$venv_path/bin/activate"
     fi
   elif [[ -n "$VIRTUAL_ENV" ]]; then
-    deactivate
+    type deactivate &>/dev/null && deactivate
   fi
 }
 
