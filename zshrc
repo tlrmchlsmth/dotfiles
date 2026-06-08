@@ -1,3 +1,8 @@
+# Profile startup with: ZSH_PROFILE=1 zsh -i -c exit
+if [[ -n "$ZSH_PROFILE" ]]; then
+  zmodload zsh/zprof
+fi
+
 # --- Dotfiles location (resolved from symlink) ---
 DOTFILES_DIR="${${(%):-%x}:A:h}"
 
@@ -59,7 +64,11 @@ zstyle ':completion:*:*:kill:*:processes' list-colors '=(#b) #([0-9]#)*=0=01;31'
 zstyle ':completion:*:kill:*' command 'ps -u $USER -o pid,%cpu,tty,cputime,cmd'
 
 autoload -Uz compinit
-compinit
+if [[ -n ~/.zcompdump(#qNmh-24) ]]; then
+  compinit -C
+else
+  compinit
+fi
 
 # --- fzf integration (Ctrl-R: history, Ctrl-T: files, Alt-C: cd) ---
 source <(fzf --zsh) 2>/dev/null
@@ -83,7 +92,25 @@ fi
 
 # --- Aliases ---
 alias vi=nvim
+just() {
+    command just "$@"
+    local ret=$?
+    if [[ -z $JUST_COMPLETE ]]; then
+        source <(command just --completions zsh)
+        JUST_COMPLETE=1
+    fi
+    return $ret
+}
 alias j=just
+kubectl() {
+    command kubectl "$@"
+    local ret=$?
+    if [[ -z $KUBECTL_COMPLETE ]]; then
+        source <(command kubectl completion zsh)
+        KUBECTL_COMPLETE=1
+    fi
+    return $ret
+}
 alias k=kubectl
 
 if [[ "$(uname 2> /dev/null)" == "Linux" ]]; then
@@ -159,3 +186,4 @@ function _auto_venv() {
 autoload -U add-zsh-hook
 add-zsh-hook chpwd _auto_venv
 _auto_venv  # Run on shell start
+[[ -n "$ZSH_PROFILE" ]] && zprof
