@@ -79,3 +79,13 @@ jobs:
             echo "FAIL: nvim produced errors on startup"
             exit 1
           fi
+
+  CI:
+    if: always()
+    needs: [install, install-container]
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" ]]; then
+            exit 1
+          fi
