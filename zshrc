@@ -113,6 +113,9 @@ kubectl() {
 }
 alias k=kubectl
 
+# claudectx tab completion (profile names are fetched live at completion time)
+(( $+commands[claudectx] )) && eval "$(claudectx completion zsh)"
+
 if [[ "$(uname 2> /dev/null)" == "Linux" ]]; then
     alias pbcopy='xclip -sel clip'
     alias open='xdg-open'
