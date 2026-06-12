@@ -1,0 +1,51 @@
+# crew-agent: the container image autonomous agents (claude/codex) run in,
+# launched by crew (github.com/tlrmchlsmth/crew). Generic dev environment —
+# tools + dotfiles only; crew injects its own protocol scripts at runtime,
+# and claudectx injects agent config + credentials.
+FROM registry.fedoraproject.org/fedora:latest
+
+ARG TARGETARCH
+
+# System packages as root; gh and neovim come from the Fedora repos, so
+# install.sh's dnf steps below are no-ops.
+RUN dnf install -y --setopt=install_weak_deps=False \
+        git curl zsh tmux ripgrep bat jq less procps-ng openssh-clients \
+        unzip tar findutils which hostname ca-certificates \
+        python3-pip neovim gh fontconfig \
+    && dnf clean all
+
+# kubectl (arch-aware, stable channel)
+RUN KVER="$(curl -fsSL https://dl.k8s.io/release/stable.txt)" \
+    && curl -fsSL -o /usr/local/bin/kubectl \
+        "https://dl.k8s.io/release/${KVER}/bin/linux/${TARGETARCH}/kubectl" \
+    && chmod 0755 /usr/local/bin/kubectl
+
+# Non-root agent user with passwordless sudo: install.sh drives dnf via
+# `sudo -n`, and agents may legitimately install task dependencies — the
+# container, not in-container privilege, is the isolation boundary.
+RUN useradd -m -s /usr/bin/zsh -G wheel tms \
+    && echo '%wheel ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/wheel \
+    && mkdir -p /work && chown tms:tms /work
+
+USER tms
+WORKDIR /home/tms
+ENV PATH=/home/tms/.local/bin:/home/tms/.fzf/bin:$PATH
+
+# Agent CLIs: claude (official installer), codex (musl release binary), uv.
+RUN mkdir -p /home/tms/.local/bin \
+    && curl -fsSL https://claude.ai/install.sh | bash \
+    && RUST_ARCH=$([ "$TARGETARCH" = "arm64" ] && echo aarch64 || echo x86_64) \
+    && curl -fsSL -o /tmp/codex.tar.gz \
+        "https://github.com/openai/codex/releases/latest/download/codex-${RUST_ARCH}-unknown-linux-musl.tar.gz" \
+    && tar -xzf /tmp/codex.tar.gz -C /tmp \
+    && mv /tmp/codex-${RUST_ARCH}-unknown-linux-musl /home/tms/.local/bin/codex \
+    && rm -f /tmp/codex.tar.gz \
+    && curl -fsSL https://astral.sh/uv/install.sh | sh
+
+# Dotfiles last — they change most often.
+COPY --chown=tms:tms . /home/tms/.dotfiles
+RUN bash /home/tms/.dotfiles/install.sh
+
+ENV SHELL=/usr/bin/zsh TERM=xterm-256color
+WORKDIR /work
+CMD ["/usr/bin/zsh", "-l"]
