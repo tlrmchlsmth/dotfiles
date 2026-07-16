@@ -150,6 +150,28 @@ if [[ -n "$TMUX" ]]; then
     fi
 fi
 
+# --- Kubernetes: per-shell context isolation ---
+if [[ -d ~/.kube/configs ]]; then
+  setopt localoptions null_glob
+  local cfgs=(~/.kube/configs/*.yaml ~/.kube/configs/*.yml)
+  if (( ${#cfgs} )); then
+    local _kube_shell=$(mktemp ~/.kube/shell.XXXXXX)
+    local _ctx="$(cat ~/.kube/last-context 2>/dev/null || echo pirate)"
+    printf 'apiVersion: v1\ncurrent-context: %s\nkind: Config\n' "$_ctx" > "$_kube_shell"
+    export KUBECONFIG="$_kube_shell:${(j.:.)cfgs}"
+    trap "rm -f '$_kube_shell'" EXIT
+  fi
+fi
+
+kctx() {
+  local ctx="${1:-$(kubectl config get-contexts -o name | fzf --height=~50% --prompt='ctx> ')}"
+  [[ -n "$ctx" ]] && kubectl config use-context "$ctx" && echo "$ctx" > ~/.kube/last-context
+}
+kns() {
+  local ns="${1:-$(kubectl get namespaces -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | fzf --height=~50% --prompt='ns> ')}"
+  [[ -n "$ns" ]] && kubectl config set-context --current --namespace="$ns"
+}
+
 # --- Extra paths ---
 fpath+=~/.config/zsh/.zsh_functions
 
