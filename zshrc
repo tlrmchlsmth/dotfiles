@@ -155,6 +155,70 @@ if [[ -n "$TMUX" ]]; then
     fi
 fi
 
+# --- Kubernetes: per-shell context isolation ---
+if [[ -d ~/.kube/configs ]]; then
+  setopt localoptions null_glob
+  local cfgs=(~/.kube/configs/*.yaml ~/.kube/configs/*.yml)
+  if (( ${#cfgs} )); then
+    local _kube_shell=$(mktemp ~/.kube/shell.XXXXXX)
+    local _ctx="$(cat ~/.kube/last-context 2>/dev/null || echo pirate)"
+    printf 'apiVersion: v1\ncurrent-context: %s\nkind: Config\n' "$_ctx" > "$_kube_shell"
+    export KUBECONFIG="$_kube_shell:${(j.:.)cfgs}"
+    trap "rm -f '$_kube_shell'" EXIT
+  fi
+fi
+
+kctx() {
+  local ctx="${1:-$(kubectl config get-contexts -o name | fzf --height=~50% --prompt='ctx> ')}"
+  [[ -n "$ctx" ]] && kubectl config use-context "$ctx" && echo "$ctx" > ~/.kube/last-context
+}
+kns() {
+  local ns="${1:-$(kubectl get namespaces -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | fzf --height=~50% --prompt='ns> ')}"
+  [[ -n "$ns" ]] && kubectl config set-context --current --namespace="$ns"
+}
+
+kubeimport() {
+  local force=0
+  if [[ "$1" == "-f" ]]; then
+    force=1
+    shift
+  fi
+  if (( $# > 1 )); then
+    echo "usage: kubeimport [-f] [name]" >&2
+    return 2
+  fi
+
+  local name="${1:-$(kubectl config current-context 2>/dev/null)}"
+  if [[ -z "$name" || "$name" == *[^A-Za-z0-9._-]* ]]; then
+    echo "kubeimport: name must contain only letters, numbers, '.', '_', or '-'" >&2
+    return 2
+  fi
+
+  local dir="$HOME/.kube/configs"
+  local dest="$dir/$name.yaml"
+  mkdir -p "$dir" || return
+  chmod 700 "$HOME/.kube" "$dir" || return
+  if [[ -e "$dest" && $force -eq 0 ]]; then
+    echo "kubeimport: $dest already exists (use -f to replace it)" >&2
+    return 1
+  fi
+
+  local tmp=$(mktemp "$dir/.$name.XXXXXX") || return
+  chmod 600 "$tmp"
+  if ! kubectl config view --minify --flatten --raw > "$tmp" ||
+     ! KUBECONFIG="$tmp" command kubectl config current-context &>/dev/null; then
+    rm -f "$tmp"
+    echo "kubeimport: could not export the current context" >&2
+    return 1
+  fi
+
+  mv -f "$tmp" "$dest" || return
+  echo "Imported $(kubectl config current-context) into $dest"
+}
+
+# --- Extra paths ---
+fpath+=~/.config/zsh/.zsh_functions
+
 # --- Local overrides ---
 local_rc="$HOME/.zshrc.local"
 [[ -f $local_rc ]] && source "$local_rc"
