@@ -24,6 +24,7 @@ source "$DOTFILES_DIR/zsh/git-aliases.zsh"
 # Extra completions (must be added to fpath before compinit)
 [[ -d "$HOME/.zsh/plugins/zsh-completions/src" ]] && \
   fpath=("$HOME/.zsh/plugins/zsh-completions/src" $fpath)
+fpath+=("$HOME/.config/zsh/.zsh_functions")
 
 # fzf-tab (must be sourced before compinit-dependent plugins)
 [[ -f "$HOME/.zsh/plugins/fzf-tab/fzf-tab.plugin.zsh" ]] && \
@@ -64,11 +65,15 @@ zstyle ':completion:*:*:kill:*:processes' list-colors '=(#b) #([0-9]#)*=0=01;31'
 zstyle ':completion:*:kill:*' command 'ps -u $USER -o pid,%cpu,tty,cputime,cmd'
 
 autoload -Uz compinit
-if [[ -n ~/.zcompdump(#qNmh-24) ]]; then
-  compinit -C
-else
-  compinit
-fi
+() {
+  local zcompdump="${ZDOTDIR:-$HOME}/.zcompdump"
+  setopt localoptions extendedglob
+  if [[ -n $zcompdump(#qNmh-24) ]]; then
+    compinit -C -d "$zcompdump"
+  else
+    compinit -d "$zcompdump" && command touch "$zcompdump"
+  fi
+}
 
 # --- fzf integration (Ctrl-R: history, Ctrl-T: files, Alt-C: cd) ---
 source <(fzf --zsh) 2>/dev/null
