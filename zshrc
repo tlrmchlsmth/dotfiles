@@ -201,13 +201,25 @@ kubeimport() {
     return 2
   fi
 
+  local source_context="$(kubectl config current-context 2>/dev/null)"
+  if [[ -z "$source_context" ]]; then
+    echo "kubeimport: no current context to import" >&2
+    return 1
+  fi
+  local source_server="$(kubectl config view --minify --raw -o jsonpath='{.clusters[0].cluster.server}' 2>/dev/null)"
+
   local dir="$HOME/.kube/configs"
   local dest="$dir/$name.yaml"
   mkdir -p "$dir" || return
   chmod 700 "$HOME/.kube" "$dir" || return
   if [[ -e "$dest" && $force -eq 0 ]]; then
-    echo "kubeimport: $dest already exists (use -f to replace it)" >&2
-    return 1
+    local dest_context="$(KUBECONFIG="$dest" command kubectl config current-context 2>/dev/null)"
+    local dest_server="$(KUBECONFIG="$dest" command kubectl config view --minify --raw -o jsonpath='{.clusters[0].cluster.server}' 2>/dev/null)"
+    if [[ "$dest_context" != "$source_context" && "$dest_context" != "$name" ]] ||
+       [[ -z "$source_server" || "$dest_server" != "$source_server" ]]; then
+      echo "kubeimport: $dest contains context '$dest_context' (use -f to replace it)" >&2
+      return 1
+    fi
   fi
 
   local tmp=$(mktemp "$dir/.$name.XXXXXX") || return
@@ -218,9 +230,15 @@ kubeimport() {
     echo "kubeimport: could not export the current context" >&2
     return 1
   fi
+  if [[ "$source_context" != "$name" ]] &&
+     ! KUBECONFIG="$tmp" command kubectl config rename-context "$source_context" "$name" &>/dev/null; then
+    rm -f "$tmp"
+    echo "kubeimport: could not rename context '$source_context' to '$name'" >&2
+    return 1
+  fi
 
   mv -f "$tmp" "$dest" || return
-  echo "Imported $(kubectl config current-context) into $dest"
+  echo "Imported $source_context as $name into $dest"
 }
 
 # --- Extra paths ---
