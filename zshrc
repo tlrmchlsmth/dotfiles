@@ -188,7 +188,14 @@ kubeimport() {
     return 2
   fi
 
-  local name="${1:-$(kubectl config current-context 2>/dev/null)}"
+  local name
+  if (( $# == 1 )); then
+    name="$1"
+  else
+    local current="$(kubectl config current-context 2>/dev/null)"
+    read "name?kubeconfig name [$current]: " || return
+    name="${name:-$current}"
+  fi
   if [[ -z "$name" || "$name" == *[^A-Za-z0-9._-]* ]]; then
     echo "kubeimport: name must contain only letters, numbers, '.', '_', or '-'" >&2
     return 2
