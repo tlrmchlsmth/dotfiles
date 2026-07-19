@@ -46,6 +46,9 @@ YAML
       { print }
     ' "$KUBECONFIG" > "$KUBECONFIG.renamed" && mv "$KUBECONFIG.renamed" "$KUBECONFIG"
     ;;
+  "config use-context "*)
+    printf '%s\n' "$3" > "$HOME/.kubectl-used-context"
+    ;;
   "completion zsh")
     ;;
   *)
@@ -72,6 +75,14 @@ if [[ ! -f "$expected" ]]; then
 fi
 if [[ "$(sed -n 's/^current-context: *//p' "$expected")" != friendly-name ]]; then
   print -u2 "expected imported context to be named friendly-name"
+  exit 1
+fi
+if [[ "$(<"$test_home/.kube/last-context")" != friendly-name ]]; then
+  print -u2 "expected imported context to be saved for new shells"
+  exit 1
+fi
+if [[ "$(<"$test_home/.kubectl-used-context")" != friendly-name ]]; then
+  print -u2 "expected imported context to be activated in the current shell"
   exit 1
 fi
 

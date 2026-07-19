@@ -238,6 +238,11 @@ kubeimport() {
   fi
 
   mv -f "$tmp" "$dest" || return
+  echo "$name" > "$HOME/.kube/last-context" || return
+  if ! kubectl config use-context "$name" &>/dev/null; then
+    echo "kubeimport: imported $name, but could not activate it in this shell" >&2
+    return 1
+  fi
   echo "Imported $source_context as $name into $dest"
 }
 
