@@ -174,7 +174,7 @@ return {
     config = function()
       local exclude_patterns = {
         ".git", ".venv", ".mypy_cache", "__pycache__",
-        ".github", ".deps", ".ruff_cache", "*.so", "*.o"
+        ".github", ".deps", ".ruff_cache", ".worktree", "*.so", "*.o"
       }
 
       local fd_command_parts = {"fd --type f --hidden --follow"}
