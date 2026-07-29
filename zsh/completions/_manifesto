@@ -1,0 +1,7 @@
+#compdef manifesto
+
+_manifesto() {
+  local -a candidates
+  candidates=("${(@f)$(manifesto __complete "${words[@]:1}" 2>/dev/null)}")
+  compadd -f -a candidates
+}
