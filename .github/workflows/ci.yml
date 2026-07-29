@@ -61,7 +61,7 @@ jobs:
         run: dnf install -y git
       - name: Install git (Arch)
         if: contains(matrix.container, 'archlinux')
-        run: pacman -Sy --noconfirm git
+        run: pacman -Syu --noconfirm git
       - uses: actions/checkout@v4
       - name: Run install.sh
         run: bash install.sh

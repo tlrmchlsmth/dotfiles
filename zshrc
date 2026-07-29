@@ -24,6 +24,7 @@ source "$DOTFILES_DIR/zsh/git-aliases.zsh"
 # Extra completions (must be added to fpath before compinit)
 [[ -d "$HOME/.zsh/plugins/zsh-completions/src" ]] && \
   fpath=("$HOME/.zsh/plugins/zsh-completions/src" $fpath)
+fpath=("$DOTFILES_DIR/zsh/completions" $fpath)
 fpath+=("$HOME/.config/zsh/.zsh_functions")
 
 # fzf-tab (must be sourced before compinit-dependent plugins)
@@ -74,6 +75,9 @@ autoload -Uz compinit
     compinit -d "$zcompdump" && command touch "$zcompdump"
   fi
 }
+
+autoload -Uz _manifesto
+compdef _manifesto manifesto
 
 # --- fzf integration (Ctrl-R: history, Ctrl-T: files, Alt-C: cd) ---
 source <(fzf --zsh) 2>/dev/null

@@ -130,7 +130,8 @@ case "$DISTRO" in
     ;;
   arch)
     if [ -n "$SUDO_CMD" ] || [ "$(id -u)" -eq 0 ]; then
-      $SUDO_CMD pacman -Sy --noconfirm \
+      # Arch does not support partial upgrades; refresh and upgrade together.
+      $SUDO_CMD pacman -Syu --noconfirm \
         git curl zsh ripgrep bat python-pip tmux unzip
     else
       echo "Skipping pacman package installation (no sudo access)."
