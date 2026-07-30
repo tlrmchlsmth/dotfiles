@@ -58,6 +58,15 @@ esac
 EOF
 chmod +x "$test_home/.local/bin/kubectl"
 
+for agent in codex claude hermes; do
+cat > "$test_home/.local/bin/$agent" <<'EOF'
+#!/bin/sh
+agent=${0##*/}
+printf '%s\n' "$KUBECONFIG" > "$HOME/.$agent-kubeconfig"
+EOF
+chmod +x "$test_home/.local/bin/$agent"
+done
+
 export HOME=$test_home
 set +e
 source "$repo_root/zshrc" >/dev/null 2>&1
@@ -83,6 +92,26 @@ if [[ "$(<"$test_home/.kube/last-context")" != friendly-name ]]; then
 fi
 if [[ "$(<"$test_home/.kubectl-used-context")" != friendly-name ]]; then
   print -u2 "expected imported context to be activated in the current shell"
+  exit 1
+fi
+if [[ "$(sed -n 's/^current-context: *//p' "$test_home/.kube/agent-context")" != friendly-name ]]; then
+  print -u2 "expected imported context to be saved for agents"
+  exit 1
+fi
+
+expected_kubeconfig="$test_home/.kube/agent-context:$test_home/.kube/configs/friendly-name.yaml"
+for agent in codex claude hermes; do
+  "$agent"
+  actual_kubeconfig="$(<"$test_home/.$agent-kubeconfig")"
+  if [[ "$actual_kubeconfig" != "$expected_kubeconfig" ]]; then
+    print -u2 "expected $agent to use the persistent context and managed kubeconfigs"
+    exit 1
+  fi
+done
+
+kctx another-context >/dev/null
+if [[ "$(sed -n 's/^current-context: *//p' "$test_home/.kube/agent-context")" != another-context ]]; then
+  print -u2 "expected kctx to update the agent context"
   exit 1
 fi
 

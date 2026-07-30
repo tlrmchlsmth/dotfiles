@@ -160,6 +160,19 @@ if [[ -n "$TMUX" ]]; then
 fi
 
 # --- Kubernetes: per-shell context isolation ---
+_save_kube_context() {
+  local ctx="$1"
+  local agent_context="$HOME/.kube/agent-context"
+  local tmp=$(mktemp "$HOME/.kube/.agent-context.XXXXXX") || return
+
+  chmod 600 "$tmp"
+  printf 'apiVersion: v1\ncurrent-context: %s\nkind: Config\n' "$ctx" > "$tmp" || {
+    rm -f "$tmp"
+    return 1
+  }
+  mv -f "$tmp" "$agent_context" && echo "$ctx" > "$HOME/.kube/last-context"
+}
+
 if [[ -d ~/.kube/configs ]]; then
   setopt localoptions null_glob
   local cfgs=(~/.kube/configs/*.yaml ~/.kube/configs/*.yml)
@@ -167,6 +180,7 @@ if [[ -d ~/.kube/configs ]]; then
     local _kube_shell=$(mktemp ~/.kube/shell.XXXXXX)
     local _ctx="$(cat ~/.kube/last-context 2>/dev/null || echo pirate)"
     printf 'apiVersion: v1\ncurrent-context: %s\nkind: Config\n' "$_ctx" > "$_kube_shell"
+    _save_kube_context "$_ctx"
     export KUBECONFIG="$_kube_shell:${(j.:.)cfgs}"
     trap "rm -f '$_kube_shell'" EXIT
   fi
@@ -174,12 +188,30 @@ fi
 
 kctx() {
   local ctx="${1:-$(kubectl config get-contexts -o name | fzf --height=~50% --prompt='ctx> ')}"
-  [[ -n "$ctx" ]] && kubectl config use-context "$ctx" && echo "$ctx" > ~/.kube/last-context
+  [[ -n "$ctx" ]] && kubectl config use-context "$ctx" && _save_kube_context "$ctx"
 }
 kns() {
   local ns="${1:-$(kubectl get namespaces -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | fzf --height=~50% --prompt='ns> ')}"
   [[ -n "$ns" ]] && kubectl config set-context --current --namespace="$ns"
 }
+
+_agent_with_kube_context() {
+  local agent="$1"
+  shift
+  setopt localoptions null_glob
+  local cfgs=(~/.kube/configs/*.yaml ~/.kube/configs/*.yml)
+  local agent_context="$HOME/.kube/agent-context"
+
+  if [[ -f "$agent_context" ]] && (( ${#cfgs} )); then
+    KUBECONFIG="$agent_context:${(j.:.)cfgs}" command "$agent" "$@"
+  else
+    command "$agent" "$@"
+  fi
+}
+
+codex() { _agent_with_kube_context codex "$@" }
+claude() { _agent_with_kube_context claude "$@" }
+hermes() { _agent_with_kube_context hermes "$@" }
 
 kubeimport() {
   local force=0
@@ -242,7 +274,7 @@ kubeimport() {
   fi
 
   mv -f "$tmp" "$dest" || return
-  echo "$name" > "$HOME/.kube/last-context" || return
+  _save_kube_context "$name" || return
   if ! kubectl config use-context "$name" &>/dev/null; then
     echo "kubeimport: imported $name, but could not activate it in this shell" >&2
     return 1
