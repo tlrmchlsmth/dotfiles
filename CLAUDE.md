@@ -47,14 +47,19 @@ The script detects the OS/distro and uses the appropriate package manager (apt/d
 Neovim uses a Lua-based configuration with lazy.nvim plugin manager:
 
 - **Entry point**: `config/nvim/init.lua` (sets leader to `,`, bootstraps lazy.nvim)
-- **Core modules**: `lua/core/{options,autocmds,keymaps}.lua`
+- **Core modules**: `lua/core/{options,autocmds,keymaps,osc52}.lua`
 - **Plugins**: `lua/plugins/init.lua` (single file with all plugin specs)
 
 Key plugins:
 - **LSP**: mason.nvim, mason-lspconfig.nvim, nvim-lspconfig (servers: lua_ls, ty, rust_analyzer)
 - **UI**: gruvbox theme, lualine, trouble.nvim, nvim-tree
 - **Fuzzy finding**: fzf-lua (uses `fd` or `find`, excludes `.git`, `.venv`, `__pycache__`, etc.)
-- **Utilities**: vim-fugitive, vim-surround, vim-oscyank
+- **Utilities**: vim-fugitive, vim-surround
+
+**Clipboard over SSH**: `lua/core/osc52.lua` writes OSC 52 escape sequences using
+Neovim's built-in `vim.ui.clipboard.osc52` writer. Mapped to `<leader>c` (operator),
+`<leader>cc` (line), and `<leader>c` in visual mode. This replaced `vim-oscyank`,
+whose pure-Vimscript base64 encoder took ~2.7s to copy 100KB.
 
 ### Zsh Configuration
 

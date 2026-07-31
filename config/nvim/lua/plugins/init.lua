@@ -269,7 +269,7 @@ return {
   },
 
   -- ========== Other Plugins ==========
-  { 'ojroques/vim-oscyank', branch = 'main', event = 'VeryLazy' },
+  -- (OSC 52 clipboard is handled natively in core/osc52.lua, no plugin needed)
 
   -- ========== Task Runner ==========
   {
