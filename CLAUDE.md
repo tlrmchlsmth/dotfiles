@@ -58,8 +58,7 @@ Key plugins:
 
 **Clipboard over SSH**: `lua/core/osc52.lua` writes OSC 52 escape sequences using
 Neovim's built-in `vim.ui.clipboard.osc52` writer. Mapped to `<leader>c` (operator),
-`<leader>cc` (line), and `<leader>c` in visual mode. This replaced `vim-oscyank`,
-whose pure-Vimscript base64 encoder took ~2.7s to copy 100KB.
+`<leader>cc` (line), and `<leader>c` in visual mode.
 
 ### Zsh Configuration
 
