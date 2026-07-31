@@ -19,10 +19,12 @@ map('n', 'gR', '<cmd>TroubleToggle lsp_references<cr>', { desc = 'LSP References
 -- LSP Mappings (will be attached in lspconfig setup)
 -- Note: 'gD', 'gd', 'K', 'gr' are often handled by lspconfig's on_attach function
 
--- OSCYank Mappings (Clipboard over SSH)
-map('n', '<leader>c', '<Plug>OSCYankOperator', { desc = 'OSCYank Operator' })
-map('n', '<leader>cc', '<leader>c_', { desc = 'OSCYank Line' })
-map('v', '<leader>c', '<Plug>OSCYankVisual', { desc = 'OSCYank Visual' })
+-- OSC 52 Mappings (Clipboard over SSH)
+local osc52 = require('core.osc52')
+map('n', '<leader>c', osc52.operator, { expr = true, desc = 'OSC52 Yank Operator' })
+map('n', '<leader>cc', function() return osc52.operator() .. '_' end, { expr = true, desc = 'OSC52 Yank Line' })
+-- `:<C-u>` (rather than a Lua callback) so we leave visual mode and '</'> are set
+map('v', '<leader>c', [[:<C-u>lua require('core.osc52').visual()<CR>]], { desc = 'OSC52 Yank Visual' })
 
 -- Single Character Insert
 map('n', 's', function() vim.cmd('normal! i' .. vim.fn.nr2char(vim.fn.getchar()) .. '\x1b') end, opts)
@@ -83,6 +85,8 @@ map('v', '//', 'y/\\V<C-R>"<CR>', { noremap = true, silent = false, desc = 'Sear
 -- Disable K (keyword lookup) if not using LSP default or want it free
 -- map('n', 'K', '<Nop>', opts)
 
--- C++/Header switching (moved to utils and called from here)
-map('n', '<Leader>c', function() require('utils.file_switch').switch_cpp_header('cpp') end, { desc = 'Switch to C++ Source' })
+-- C++/Header switching
+-- NOTE: utils/file_switch.lua does not exist, so this errors when invoked.
+-- The <Leader>c variant was also shadowing the OSC52 yank operator above and
+-- has been dropped; restore it under a different key if file_switch is written.
 map('n', '<Leader>h', function() require('utils.file_switch').switch_cpp_header('hpp') end, { desc = 'Switch to C++ Header' })
