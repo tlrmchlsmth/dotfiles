@@ -84,9 +84,3 @@ map('v', '//', 'y/\\V<C-R>"<CR>', { noremap = true, silent = false, desc = 'Sear
 
 -- Disable K (keyword lookup) if not using LSP default or want it free
 -- map('n', 'K', '<Nop>', opts)
-
--- C++/Header switching
--- NOTE: utils/file_switch.lua does not exist, so this errors when invoked.
--- The <Leader>c variant was also shadowing the OSC52 yank operator above and
--- has been dropped; restore it under a different key if file_switch is written.
-map('n', '<Leader>h', function() require('utils.file_switch').switch_cpp_header('hpp') end, { desc = 'Switch to C++ Header' })
