@@ -268,9 +268,6 @@ return {
     },
   },
 
-  -- ========== Other Plugins ==========
-  -- (OSC 52 clipboard is handled natively in core/osc52.lua, no plugin needed)
-
   -- ========== Task Runner ==========
   {
     'stevearc/overseer.nvim',

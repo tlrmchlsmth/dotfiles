@@ -1,10 +1,7 @@
 -- ~/.config/nvim/lua/core/osc52.lua
 --
 -- Copy to the local system clipboard over SSH via the OSC 52 escape sequence.
---
--- Replaces ojroques/vim-oscyank, whose base64 encoder is a pure-Vimscript loop
--- (~26us per byte: 2.7s to copy 100KB). Neovim's built-in OSC 52 writer uses
--- vim.base64.encode in C, which is ~20000x faster.
+-- Wraps Neovim's built-in OSC 52 writer, which base64-encodes in C.
 
 local M = {}
 
