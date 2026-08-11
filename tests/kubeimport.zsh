@@ -99,6 +99,53 @@ if [[ "$(sed -n 's/^current-context: *//p' "$test_home/.kube/agent-context")" !=
   exit 1
 fi
 
+# Saving an unchanged context should not create or replace any files.
+integer mktemp_calls=0
+mktemp() {
+  (( mktemp_calls++ ))
+  return 1
+}
+_save_kube_context friendly-name
+if (( mktemp_calls != 0 )); then
+  print -u2 "expected an unchanged agent context to avoid mktemp"
+  exit 1
+fi
+unfunction mktemp
+
+# Successful initialization should prepend a valid per-shell context file.
+(
+  unset KUBECONFIG
+  _init_kube_shell_context
+  shell_context="${KUBECONFIG%%:*}"
+  if [[ ! -f "$shell_context" ]]; then
+    print -u2 "expected kube context initialization to create a per-shell config"
+    exit 1
+  fi
+  if [[ "$(sed -n 's/^current-context: *//p' "$shell_context")" != friendly-name ]]; then
+    print -u2 "expected per-shell config to use the saved context"
+    exit 1
+  fi
+  _init_kube_shell_context
+  if [[ -e "$shell_context" ]]; then
+    print -u2 "expected reinitialization to remove the previous per-shell config"
+    exit 1
+  fi
+)
+
+# A failed per-shell temp file must preserve the caller's KUBECONFIG.
+(
+  export KUBECONFIG=existing-kubeconfig
+  mktemp() { return 1 }
+  if _init_kube_shell_context 2>/dev/null; then
+    print -u2 "expected kube context initialization to report mktemp failure"
+    exit 1
+  fi
+  if [[ "$KUBECONFIG" != existing-kubeconfig ]]; then
+    print -u2 "expected failed kube context initialization to preserve KUBECONFIG"
+    exit 1
+  fi
+)
+
 expected_kubeconfig="$test_home/.kube/agent-context:$test_home/.kube/configs/friendly-name.yaml"
 for agent in codex claude hermes; do
   "$agent"
