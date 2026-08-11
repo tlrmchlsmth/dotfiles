@@ -163,27 +163,63 @@ fi
 _save_kube_context() {
   local ctx="$1"
   local agent_context="$HOME/.kube/agent-context"
-  local tmp=$(mktemp "$HOME/.kube/.agent-context.XXXXXX") || return
+  local last_context="$HOME/.kube/last-context"
+  local expected=$'apiVersion: v1\ncurrent-context: '"$ctx"$'\nkind: Config'
 
-  chmod 600 "$tmp"
-  printf 'apiVersion: v1\ncurrent-context: %s\nkind: Config\n' "$ctx" > "$tmp" || {
+  # New shells normally inherit the context already saved by kctx/kubeimport.
+  # Avoid replacing both files when they already contain the desired state.
+  if [[ -r "$agent_context" && -r "$last_context" ]] &&
+     [[ "$(<"$agent_context")" == "$expected" ]] &&
+     [[ "$(<"$last_context")" == "$ctx" ]]; then
+    return 0
+  fi
+
+  local tmp
+  tmp=$(mktemp "$HOME/.kube/.agent-context.XXXXXX") || return 1
+
+  chmod 600 "$tmp" || {
     rm -f "$tmp"
     return 1
   }
-  mv -f "$tmp" "$agent_context" && echo "$ctx" > "$HOME/.kube/last-context"
+  print -r -- "$expected" > "$tmp" || {
+    rm -f "$tmp"
+    return 1
+  }
+  mv -f "$tmp" "$agent_context" && print -r -- "$ctx" > "$last_context"
+}
+
+_cleanup_kube_shell_context() {
+  [[ -n "${_KUBE_SHELL_CONTEXT:-}" ]] && rm -f -- "$_KUBE_SHELL_CONTEXT"
+}
+
+_init_kube_shell_context() {
+  setopt localoptions null_glob
+  local cfgs=(~/.kube/configs/*.yaml ~/.kube/configs/*.yml)
+  (( ${#cfgs} )) || return 0
+
+  local shell_context ctx previous_context="${_KUBE_SHELL_CONTEXT:-}"
+  shell_context=$(mktemp ~/.kube/shell.XXXXXX) || return 1
+  ctx="$(<~/.kube/last-context 2>/dev/null)"
+  ctx="${ctx:-pirate}"
+
+  if ! printf 'apiVersion: v1\ncurrent-context: %s\nkind: Config\n' "$ctx" > "$shell_context" ||
+     ! _save_kube_context "$ctx"; then
+    rm -f -- "$shell_context"
+    return 1
+  fi
+
+  typeset -g _KUBE_SHELL_CONTEXT="$shell_context"
+  export KUBECONFIG="$shell_context:${(j.:.)cfgs}"
+  if [[ -n "$previous_context" && "$previous_context" != "$shell_context" ]]; then
+    rm -f -- "$previous_context"
+  fi
+  autoload -Uz add-zsh-hook
+  add-zsh-hook zshexit _cleanup_kube_shell_context
 }
 
 if [[ -d ~/.kube/configs ]]; then
-  setopt localoptions null_glob
-  local cfgs=(~/.kube/configs/*.yaml ~/.kube/configs/*.yml)
-  if (( ${#cfgs} )); then
-    local _kube_shell=$(mktemp ~/.kube/shell.XXXXXX)
-    local _ctx="$(cat ~/.kube/last-context 2>/dev/null || echo pirate)"
-    printf 'apiVersion: v1\ncurrent-context: %s\nkind: Config\n' "$_ctx" > "$_kube_shell"
-    _save_kube_context "$_ctx"
-    export KUBECONFIG="$_kube_shell:${(j.:.)cfgs}"
-    trap "rm -f '$_kube_shell'" EXIT
-  fi
+  _init_kube_shell_context ||
+    print -u2 "warning: could not initialize isolated Kubernetes context"
 fi
 
 kctx() {
