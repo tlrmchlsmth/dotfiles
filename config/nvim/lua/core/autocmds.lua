@@ -24,9 +24,9 @@ vim.api.nvim_create_autocmd('BufReadPost', {
     local line = mark[1]
     local col = mark[2]
     if line > 0 and line <= vim.api.nvim_buf_line_count(args.buf) then
-      vim.defer_fn(function()
-        vim.api.nvim_win_set_cursor(0, {line, col})
-      end, 10)
+      -- Restore the position before asynchronous LSP jumps are handled.
+      -- A delayed restore can overwrite `gd`/other LSP navigation targets.
+      vim.api.nvim_win_set_cursor(0, {line, col})
     end
   end,
   desc = 'Restore cursor position on buffer load',

@@ -122,6 +122,10 @@ kubectl() {
 }
 alias k=kubectl
 
+qq() {
+  codex exec -m gpt-5.6-luna "$@"
+}
+
 # claudectx tab completion (profile names are fetched live at completion time)
 (( $+commands[claudectx] )) && eval "$(claudectx completion zsh)"
 
