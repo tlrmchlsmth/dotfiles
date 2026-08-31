@@ -525,6 +525,8 @@ if command -v git >/dev/null; then
     git config --global user.name "Tyler Michael Smith"
     echo "Setting git pull rebase behavior: false"
     git config --global pull.rebase false
+    echo "Setting git branch sort order: committerdate"
+    git config --global branch.sort committerdate
 else
     echo "Warning: git command not found. Skipping Git global configuration." >&2
 fi
