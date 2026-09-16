@@ -9,6 +9,12 @@ local opts = { noremap = true, silent = true } -- Default options for most mappi
 map('n', '<leader>p', ':FzfLua files<CR>', { noremap = true, silent = false, desc = 'FZF Files (Root)' })
 map('n', '<leader>g', ':FzfLua live_grep_native<CR>', { noremap = true, silent = false, desc = 'FZF Live Grep (Root)' }) -- Using native rg is faster if available
 
+-- GitHub navigation.  Giving GBrowse a range pins file links to a commit and
+-- adds a line anchor, so these remain valid as the branch moves forward.
+map('n', '<leader>go', '<cmd>.GBrowse<CR>', { desc = 'Open GitHub Permalink' })
+map('v', '<leader>go', [[:<C-u>'<,'>GBrowse<CR>]], { desc = 'Open GitHub Permalink' })
+map('n', '<leader>gb', '<cmd>Git blame<CR>', { desc = 'Git Blame' })
+
 map('n', '<leader>xx', '<cmd>TroubleToggle<cr>', { desc = 'Toggle Trouble' })
 map('n', '<leader>xw', '<cmd>TroubleToggle lsp_workspace_diagnostics<cr>', { desc = 'Workspace Diagnostics' })
 map('n', '<leader>xd', '<cmd>TroubleToggle lsp_document_diagnostics<cr>', { desc = 'Document Diagnostics' })

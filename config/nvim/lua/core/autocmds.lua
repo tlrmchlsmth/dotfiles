@@ -48,6 +48,18 @@ api.nvim_create_autocmd('FileType', {
     desc = "Allow // comments in JSON"
 })
 
+api.nvim_create_autocmd('FileType', {
+  pattern = 'fugitiveblame',
+  callback = function(args)
+    local opts = { buffer = args.buf, silent = true }
+    vim.keymap.set('n', '<leader>gc', '<cmd>.GBrowse<CR>',
+      vim.tbl_extend('keep', opts, { desc = 'Open Blamed Commit on GitHub' }))
+    vim.keymap.set('n', '<leader>gp', require('utils.github').open_blame_pr,
+      vim.tbl_extend('keep', opts, { desc = 'Open Blamed Pull Request on GitHub' }))
+  end,
+  desc = 'GitHub links from Fugitive blame',
+})
+
 -- LSP keymaps on attach (Neovim 0.11+ style)
 api.nvim_create_autocmd('LspAttach', {
   callback = function(args)
