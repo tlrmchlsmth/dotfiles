@@ -4,7 +4,10 @@ local icons = require('core.icons')
 
 return {
   -- ========== Core Essentials ==========
-  { 'tpope/vim-fugitive' },
+  {
+    'tpope/vim-fugitive',
+    dependencies = { 'tpope/vim-rhubarb' },
+  },
   { 'tpope/vim-surround', event = 'VeryLazy' },
   { 'tpope/vim-repeat', event = 'VeryLazy' },
   { 'tpope/vim-eunuch', event = 'VeryLazy' },
