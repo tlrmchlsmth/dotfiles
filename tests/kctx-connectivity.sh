@@ -111,16 +111,25 @@ fi
 printf 'vllm-gb200\n' > "$test_home/.current-context"
 [[ "$("$script" status)" == ◆vllm ]]
 
-# A stale prompt result refreshes in the background without restarting SSH.
+# A stale result stays visible while the background check runs.
 printf 'up 1\n' > "$KCTX_STATUS_CACHE_DIR/gb200"
 touch "$test_home/.probe-always-fails"
-[[ "$("$script" status)" == ◈vllm ]]
+[[ "$("$script" status)" == ◆vllm ]]
 wait_for_state down
-[[ ! -e "$test_home/.tunnel-calls" ]]
 [[ "$("$script" status)" == ◇vllm ]]
+rm "$test_home/.probe-always-fails"
+
+# A stale down result repairs the GB200 tunnel without another kctx selection.
+printf 'down 1\n' > "$KCTX_STATUS_CACHE_DIR/gb200"
+touch "$test_home/.probe-until-restart"
+rm -f "$test_home/.tunnel-restarted" "$test_home/.tunnel-calls"
+[[ "$("$script" status)" == ◇vllm ]]
+wait_for_state up
+[[ "$(<"$test_home/.tunnel-calls")" == restart ]]
+rm "$test_home/.probe-until-restart"
 
 # An explicit ensure restarts the tunnel once after a failed probe.
-rm "$test_home/.probe-always-fails"
+rm -f "$test_home/.tunnel-restarted" "$test_home/.tunnel-calls"
 touch "$test_home/.probe-fails-once"
 "$script" ensure
 wait_for_state up
@@ -158,6 +167,20 @@ if command -v starship >/dev/null; then
     printf 'expected a compact Kubernetes prompt, got %s\n' "$prompt" >&2
     exit 1
   }
+
+  # Existing shells may lack the variable set by a newer zshrc.
+  mkdir -p "$HOME/.config"
+  ln -s "$repo_root/config/starship.toml" "$HOME/.config/starship.toml"
+  output=$(env -u KCTX_STATUS_SCRIPT STARSHIP_CONFIG="$HOME/.config/starship.toml" starship module custom.kube_connectivity)
+  [[ "$output" == *◇vllm* ]] || {
+    printf 'expected Starship to find the script without KCTX_STATUS_SCRIPT, got %s\n' "$output" >&2
+    exit 1
+  }
 fi
+
+# A cache write failure must not make the last result disappear from the prompt.
+chmod 500 "$KCTX_STATUS_CACHE_DIR"
+[[ "$("$script" status)" == ◇vllm ]]
+chmod 700 "$KCTX_STATUS_CACHE_DIR"
 
 printf 'kctx connectivity tests passed\n'
