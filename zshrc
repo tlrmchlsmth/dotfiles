@@ -5,6 +5,7 @@ fi
 
 # --- Dotfiles location (resolved from symlink) ---
 DOTFILES_DIR="${${(%):-%x}:A:h}"
+export KCTX_STATUS_SCRIPT="$DOTFILES_DIR/bin/kctx-connectivity"
 
 # --- PATH (early, so tools like starship/fzf are available below) ---
 export PATH=$HOME/.local/bin:$PATH
@@ -228,7 +229,13 @@ fi
 
 kctx() {
   local ctx="${1:-$(kubectl config get-contexts -o name | fzf --height=~50% --prompt='ctx> ')}"
-  [[ -n "$ctx" ]] && kubectl config use-context "$ctx" && _save_kube_context "$ctx"
+  [[ -n "$ctx" ]] || return 1
+  kubectl config use-context "$ctx" && _save_kube_context "$ctx" || return 1
+  if [[ "$ctx" == vllm-gb200 ]]; then
+    "$KCTX_STATUS_SCRIPT" connect ||
+      print -u2 "kctx: could not start the GB200 connectivity check"
+  fi
+  return 0
 }
 kns() {
   local ns="${1:-$(kubectl get namespaces -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | fzf --height=~50% --prompt='ns> ')}"
