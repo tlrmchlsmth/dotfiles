@@ -9,6 +9,16 @@ mkdir -p "$test_home/.local/bin"
 cat > "$test_home/.local/bin/kubectl" <<'EOF'
 #!/bin/sh
 case "$*" in
+  "--context vllm-gb200 --request-timeout=5s get --raw=/readyz")
+    printf 'probe\n' >> "$HOME/.gb200-probes"
+    if [ -f "$HOME/.gb200-probe-always-fails" ]; then
+      exit 1
+    fi
+    if [ -f "$HOME/.gb200-probe-fails-once" ]; then
+      rm "$HOME/.gb200-probe-fails-once"
+      exit 1
+    fi
+    ;;
   "config current-context")
     if [ -n "$KUBECONFIG" ] && [ -f "$KUBECONFIG" ]; then
       sed -n 's/^current-context: *//p' "$KUBECONFIG"
@@ -159,6 +169,22 @@ done
 kctx another-context >/dev/null
 if [[ "$(sed -n 's/^current-context: *//p' "$test_home/.kube/agent-context")" != another-context ]]; then
   print -u2 "expected kctx to update the agent context"
+  exit 1
+fi
+
+cat > "$test_home/kctx-status" <<'EOF'
+#!/bin/sh
+printf '%s\n' "$1" >> "$HOME/.kctx-status-calls"
+EOF
+chmod +x "$test_home/kctx-status"
+export KCTX_STATUS_SCRIPT="$test_home/kctx-status"
+touch "$test_home/.gb200-probe-always-fails"
+kctx vllm-gb200 >/dev/null
+if [[ "$(<"$test_home/.kctx-status-calls")" != connect ]] ||
+   [[ -e "$test_home/.gb200-probes" ]] ||
+   [[ "$(<"$test_home/.kubectl-used-context")" != vllm-gb200 ]] ||
+   [[ "$(sed -n 's/^current-context: *//p' "$test_home/.kube/agent-context")" != vllm-gb200 ]]; then
+  print -u2 "expected kctx to switch immediately and queue a background GB200 check"
   exit 1
 fi
 

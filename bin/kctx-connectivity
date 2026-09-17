@@ -1,0 +1,128 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Background GB200 connectivity check and prompt cache.
+context=vllm-gb200
+cache_dir="${KCTX_STATUS_CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/kctx}"
+state_file="$cache_dir/gb200"
+tunnel="${KCTX_GB200_TUNNEL_SCRIPT:-$HOME/code/j-llm-d/local/gb200-tunnel.sh}"
+umask 077
+
+write_state() {
+  mkdir -p "$cache_dir"
+  local tmp
+  tmp=$(mktemp "$cache_dir/.gb200.XXXXXX")
+  printf '%s %s\n' "$1" "$(date +%s)" > "$tmp"
+  mv -f "$tmp" "$state_file"
+}
+
+api_ready() {
+  kubectl --context "$context" --request-timeout=5s get --raw=/readyz &>/dev/null
+}
+
+probe() {
+  write_state checking
+  if api_ready; then
+    write_state up
+  else
+    write_state down
+  fi
+}
+
+ensure_locked() {
+  write_state checking
+  if api_ready; then
+    write_state up
+    return 0
+  fi
+
+  if [[ ! -x "$tunnel" ]] || ! "$tunnel" restart &>/dev/null; then
+    write_state down
+    return 1
+  fi
+
+  local attempt
+  for attempt in 1 2 3 4 5; do
+    if api_ready; then
+      write_state up
+      return 0
+    fi
+    if (( attempt < 5 )); then
+      sleep 2
+    fi
+  done
+
+  write_state down
+  return 1
+}
+
+ensure() {
+  mkdir -p "$cache_dir"
+  local lock_file="$cache_dir/gb200.ensure.lock" result=0
+
+  # Kernel locks are released if a checker exits unexpectedly. A concurrent
+  # selection can rely on the active checker to publish the final state.
+  if command -v lockf >/dev/null 2>&1; then
+    lockf -k -t 0 "$lock_file" "$0" ensure-locked 2>/dev/null || result=$?
+  elif command -v flock >/dev/null 2>&1; then
+    flock -E 75 -n "$lock_file" "$0" ensure-locked 2>/dev/null || result=$?
+  else
+    write_state down
+    printf 'kctx-connectivity: lockf or flock is required\n' >&2
+    return 1
+  fi
+
+  if (( result == 75 )); then
+    return 0
+  fi
+  return "$result"
+}
+
+connect() {
+  write_state checking
+  nohup "$0" ensure </dev/null >/dev/null 2>&1 &
+}
+
+status() {
+  local current namespace="" state=checking checked_at=0 now interval=30 symbol
+  current=$(kubectl config current-context 2>/dev/null) || return 0
+  namespace=$(kubectl config view --minify -o jsonpath='{.contexts[0].context.namespace}' 2>/dev/null) || true
+  if [[ "$current" != "$context" ]]; then
+    if [[ -n "$namespace" ]]; then
+      printf '|%s\n' "$namespace"
+    fi
+    return 0
+  fi
+
+  if [[ -r "$state_file" ]]; then
+    read -r state checked_at < "$state_file" || true
+  fi
+  [[ "$checked_at" =~ ^[0-9]+$ ]] || checked_at=0
+  case "$state" in
+    up|down|checking) ;;
+    *) state=checking ;;
+  esac
+
+  now=$(date +%s)
+  [[ "$state" == checking ]] && interval=90
+  if (( now - checked_at >= interval )); then
+    state=checking
+    write_state checking
+    nohup "$0" probe </dev/null >/dev/null 2>&1 &
+  fi
+  case "$state" in
+    up) symbol=◆ ;;
+    down) symbol=◇ ;;
+    checking) symbol=◈ ;;
+  esac
+  printf '%s%s\n' "$symbol" "$namespace"
+}
+
+case "${1:-}" in
+  connect) connect ;;
+  ensure) ensure ;;
+  ensure-locked) ensure_locked ;;
+  probe) probe ;;
+  status) status ;;
+  *) printf 'usage: %s <connect|ensure|probe|status>\n' "$0" >&2; exit 2 ;;
+esac
