@@ -31,7 +31,7 @@ api_ready() {
 }
 
 probe() {
-  write_state checking
+  write_state checking || true
   if api_ready; then
     write_state up
   else
@@ -40,7 +40,6 @@ probe() {
 }
 
 ensure_locked() {
-  write_state checking
   if api_ready; then
     write_state up
     return 0
@@ -89,7 +88,7 @@ ensure() {
 }
 
 connect() {
-  write_state checking
+  write_state checking || true
   nohup "$0" ensure </dev/null >/dev/null 2>&1 &
 }
 
@@ -113,9 +112,15 @@ status() {
   now=$(date +%s)
   [[ "$state" == checking ]] && interval=90
   if (( now - checked_at >= interval )); then
+    # Show checking even when the cache cannot be updated. GB200 checks also
+    # repair its tunnel when the API cannot be reached.
     state=checking
-    write_state checking
-    nohup "$0" probe "$context" </dev/null >/dev/null 2>&1 &
+    write_state checking 2>/dev/null || true
+    if [[ "$context" == vllm-gb200 ]]; then
+      nohup "$0" ensure </dev/null >/dev/null 2>&1 &
+    else
+      nohup "$0" probe "$context" </dev/null >/dev/null 2>&1 &
+    fi
   fi
   case "$state" in
     up) symbol=◆ ;;
