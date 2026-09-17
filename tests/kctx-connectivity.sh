@@ -111,10 +111,10 @@ fi
 printf 'vllm-gb200\n' > "$test_home/.current-context"
 [[ "$("$script" status)" == ◆vllm ]]
 
-# A stale result stays visible while the background check runs.
+# A stale result shows checking while the background check runs.
 printf 'up 1\n' > "$KCTX_STATUS_CACHE_DIR/gb200"
 touch "$test_home/.probe-always-fails"
-[[ "$("$script" status)" == ◆vllm ]]
+[[ "$("$script" status)" == ◈vllm ]]
 wait_for_state down
 [[ "$("$script" status)" == ◇vllm ]]
 rm "$test_home/.probe-always-fails"
@@ -123,7 +123,7 @@ rm "$test_home/.probe-always-fails"
 printf 'down 1\n' > "$KCTX_STATUS_CACHE_DIR/gb200"
 touch "$test_home/.probe-until-restart"
 rm -f "$test_home/.tunnel-restarted" "$test_home/.tunnel-calls"
-[[ "$("$script" status)" == ◇vllm ]]
+[[ "$("$script" status)" == ◈vllm ]]
 wait_for_state up
 [[ "$(<"$test_home/.tunnel-calls")" == restart ]]
 rm "$test_home/.probe-until-restart"
@@ -178,9 +178,10 @@ if command -v starship >/dev/null; then
   }
 fi
 
-# A cache write failure must not make the last result disappear from the prompt.
+# A cache write failure must not make the checking indicator disappear.
+printf 'down 1\n' > "$KCTX_STATUS_CACHE_DIR/gb200"
 chmod 500 "$KCTX_STATUS_CACHE_DIR"
-[[ "$("$script" status)" == ◇vllm ]]
+[[ "$("$script" status)" == ◈vllm ]]
 chmod 700 "$KCTX_STATUS_CACHE_DIR"
 
 printf 'kctx connectivity tests passed\n'

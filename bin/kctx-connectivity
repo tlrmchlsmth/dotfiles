@@ -112,9 +112,10 @@ status() {
   now=$(date +%s)
   [[ "$state" == checking ]] && interval=90
   if (( now - checked_at >= interval )); then
-    # Keep the last result visible while the background check runs. GB200
-    # checks also repair its tunnel when the API cannot be reached.
-    write_state "$state" 2>/dev/null || true
+    # Show checking even when the cache cannot be updated. GB200 checks also
+    # repair its tunnel when the API cannot be reached.
+    state=checking
+    write_state checking 2>/dev/null || true
     if [[ "$context" == vllm-gb200 ]]; then
       nohup "$0" ensure </dev/null >/dev/null 2>&1 &
     else
