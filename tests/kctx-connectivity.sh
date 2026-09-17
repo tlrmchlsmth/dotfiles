@@ -17,6 +17,9 @@ cat > "$test_home/bin/kubectl" <<'EOF'
 case "$*" in
   "config current-context") cat "$HOME/.current-context" ;;
   "config view --minify -o jsonpath={.contexts[0].context.namespace}") cat "$HOME/.current-namespace" ;;
+  "--context pirate --request-timeout=5s get --raw=/readyz")
+    if [ -f "$HOME/.pirate-probe-fails" ]; then exit 1; fi
+    ;;
   "--context vllm-gb200 --request-timeout=5s get --raw=/readyz")
     if [ -f "$HOME/.probe-delay" ]; then /bin/sleep 2; fi
     if [ -f "$HOME/.probe-always-fails" ]; then exit 1; fi
@@ -89,10 +92,24 @@ rm "$test_home/.probe-delay"
 [[ "$("$script" status)" == ◆vllm ]]
 [[ ! -e "$test_home/.tunnel-calls" ]]
 
-# Other contexts retain their namespace separator.
+# Every context gets an independent connectivity result.
 printf 'pirate\n' > "$test_home/.current-context"
-[[ "$("$script" status)" == '|vllm' ]]
+[[ "$("$script" status)" == ◈vllm ]]
+for i in {1..50}; do
+  [[ "$("$script" status)" == ◆vllm ]] && break
+  /bin/sleep 0.1
+done
+[[ "$("$script" status)" == ◆vllm ]]
+touch "$test_home/.pirate-probe-fails"
+"$script" probe pirate
+[[ "$("$script" status)" == ◇vllm ]]
+[[ ! -e "$test_home/.tunnel-calls" ]]
+if command -v starship >/dev/null; then
+  output=$(STARSHIP_CONFIG="$repo_root/config/starship.toml" starship module custom.kube_connectivity)
+  [[ "$output" == *◇vllm* ]]
+fi
 printf 'vllm-gb200\n' > "$test_home/.current-context"
+[[ "$("$script" status)" == ◆vllm ]]
 
 # A stale prompt result refreshes in the background without restarting SSH.
 printf 'up 1\n' > "$KCTX_STATUS_CACHE_DIR/gb200"
