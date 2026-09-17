@@ -177,7 +177,8 @@ return {
     config = function()
       local exclude_patterns = {
         ".git", ".venv", ".mypy_cache", "__pycache__",
-        ".github", ".deps", ".ruff_cache", ".worktree", "*.so", "*.o"
+        ".github", ".deps", ".ruff_cache",
+        ".worktree", ".worktrees", "worktrees", "*.so", "*.o"
       }
 
       local fd_command_parts = {"fd --type f --hidden --follow"}
@@ -207,7 +208,9 @@ return {
           cmd = vim.fn.executable("fd") == 1 and fd_command_str or find_command_str,
         },
         live_grep_native = {
-          cmd = "rg --color=always --line-number --no-heading --smart-case ''"
+          cmd = "rg --color=always --line-number --no-heading --smart-case " ..
+            "--glob '!**/.worktree/**' --glob '!**/.worktrees/**' " ..
+            "--glob '!**/worktrees/**' ''"
         },
       })
     end
