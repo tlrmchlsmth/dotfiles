@@ -245,6 +245,12 @@ kns() {
 _agent_with_kube_context() {
   local agent="$1"
   shift
+  if ! whence -p "$agent" >/dev/null; then
+    print -u2 -r -- "$agent: shell wrapper is configured, but the executable was not found on PATH."
+    print -u2 -r -- "Install $agent or add its installation directory to PATH, then try again."
+    return 127
+  fi
+
   setopt localoptions null_glob
   local cfgs=(~/.kube/configs/*.yaml ~/.kube/configs/*.yml)
   local agent_context="$HOME/.kube/agent-context"
