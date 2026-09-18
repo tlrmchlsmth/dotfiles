@@ -11,6 +11,14 @@ export KCTX_STATUS_SCRIPT="$DOTFILES_DIR/bin/kctx-connectivity"
 export PATH=$HOME/.local/bin:$PATH
 export PATH="$HOME/go/bin:$PATH"
 
+# --- Missing commands (including commands called by aliases and functions) ---
+command_not_found_handler() {
+  print -u2 -r -- "zsh: command not found: $1"
+  print -u2 -r -- "Check spelling, install the missing command, or add its directory to PATH."
+  print -u2 -r -- "Aliases and functions can exist even when a command they call is missing."
+  return 127
+}
+
 # --- Prompt ---
 if command -v starship &>/dev/null; then
   eval "$(starship init zsh)"
@@ -245,12 +253,6 @@ kns() {
 _agent_with_kube_context() {
   local agent="$1"
   shift
-  if ! whence -p "$agent" >/dev/null; then
-    print -u2 -r -- "$agent: shell wrapper is configured, but the executable was not found on PATH."
-    print -u2 -r -- "Install $agent or add its installation directory to PATH, then try again."
-    return 127
-  fi
-
   setopt localoptions null_glob
   local cfgs=(~/.kube/configs/*.yaml ~/.kube/configs/*.yml)
   local agent_context="$HOME/.kube/agent-context"
