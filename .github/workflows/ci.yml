@@ -28,6 +28,8 @@ jobs:
         run: zsh tests/kubeimport.zsh
       - name: Run kctx connectivity tests
         run: bash tests/kctx-connectivity.sh
+      - name: Run tunnel tests
+        run: bash tests/tunnel.sh
       - name: Verify key binaries
         shell: zsh {0}
         run: |
@@ -71,6 +73,8 @@ jobs:
         run: zsh tests/kubeimport.zsh
       - name: Run kctx connectivity tests
         run: bash tests/kctx-connectivity.sh
+      - name: Run tunnel tests
+        run: bash tests/tunnel.sh
       - name: Verify key binaries
         shell: zsh {0}
         run: |
