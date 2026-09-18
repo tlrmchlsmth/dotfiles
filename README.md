@@ -23,20 +23,19 @@ bash install.sh [-g GITHUB_TOKEN] [-h HUGGINGFACE_TOKEN]
 - **safemake.sh** — `make` wrapper that caps `-j` parallelism
 - **tunnel.sh** — manages named SSH forwards; host and port settings stay in local config
 
-## Local GB200 tunnel
+## Kubernetes connectivity hooks
 
-The `vllm-gb200` context can repair its SSH tunnel when the API is unreachable.
-Create an executable `~/.config/kctx/gb200-tunnel.sh` with your own bastion and
-forwarding settings. For example:
+The prompt checks each Kubernetes context in the background. When an API is
+unreachable, it runs an optional executable at `~/.config/kctx/connect-hook`
+with the context name and `restart` as arguments. The hook can repair a local
+VPN, proxy, or SSH tunnel and should return a nonzero status for contexts it
+does not handle. Set `KCTX_CONNECT_HOOK` to use another path. Keep context
+names, endpoints, and credentials in local configuration outside this repo.
 
-```bash
-#!/usr/bin/env bash
-exec "$HOME/.dotfiles/bin/tunnel.sh" gb200 "${1:-start}" user@bastion -D 1080
-```
-
-The kubeconfig's `proxy-url` must point to the same local SOCKS port. Set
-`KCTX_GB200_TUNNEL_SCRIPT` to use another wrapper path. The wrapper is local
-machine configuration and is not tracked in this repository.
+An optional `~/.config/kctx/default-context` file selects the initial context
+when no context has been saved; otherwise the first available current context
+from the managed kubeconfigs is used. `XDG_CONFIG_HOME` can change the local
+config directory.
 
 ## Supported Platforms
 
