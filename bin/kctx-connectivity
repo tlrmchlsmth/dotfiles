@@ -1,21 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Background Kubernetes API connectivity checks and prompt cache.
-context=vllm-gb200
+# Background Kubernetes API checks with optional, locally configured repair.
 cache_dir="${KCTX_STATUS_CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/kctx}"
-state_file="$cache_dir/gb200"
-tunnel="${KCTX_GB200_TUNNEL_SCRIPT:-$HOME/code/j-llm-d/local/gb200-tunnel.sh}"
+hook="${KCTX_CONNECT_HOOK:-${XDG_CONFIG_HOME:-$HOME/.config}/kctx/connect-hook}"
+context=""
+state_file=""
 umask 077
 
-state_file_for_context() {
-  if [[ "$context" == vllm-gb200 ]]; then
-    state_file="$cache_dir/gb200"
-  else
-    local key
-    key=$(printf '%s' "$context" | od -An -tx1 | tr -d ' \n')
-    state_file="$cache_dir/context-$key"
-  fi
+select_context() {
+  context="${1:-$(kubectl config current-context 2>/dev/null)}"
+  [[ -n "$context" ]] || return 1
+  local key
+  key=$(printf '%s' "$context" | od -An -tx1 | tr -d ' \n')
+  state_file="$cache_dir/context-$key"
 }
 
 write_state() {
@@ -45,7 +43,7 @@ ensure_locked() {
     return 0
   fi
 
-  if [[ ! -x "$tunnel" ]] || ! "$tunnel" restart &>/dev/null; then
+  if [[ ! -x "$hook" ]] || ! "$hook" "$context" restart &>/dev/null; then
     write_state down
     return 1
   fi
@@ -67,14 +65,14 @@ ensure_locked() {
 
 ensure() {
   mkdir -p "$cache_dir"
-  local lock_file="$cache_dir/gb200.ensure.lock" result=0
+  local lock_file="$state_file.ensure.lock" result=0
 
   # Kernel locks are released if a checker exits unexpectedly. A concurrent
   # selection can rely on the active checker to publish the final state.
   if command -v lockf >/dev/null 2>&1; then
-    lockf -k -t 0 "$lock_file" "$0" ensure-locked 2>/dev/null || result=$?
+    lockf -k -t 0 "$lock_file" "$0" ensure-locked "$context" 2>/dev/null || result=$?
   elif command -v flock >/dev/null 2>&1; then
-    flock -E 75 -n "$lock_file" "$0" ensure-locked 2>/dev/null || result=$?
+    flock -E 75 -n "$lock_file" "$0" ensure-locked "$context" 2>/dev/null || result=$?
   else
     write_state down
     printf 'kctx-connectivity: lockf or flock is required\n' >&2
@@ -89,15 +87,12 @@ ensure() {
 
 connect() {
   write_state checking || true
-  nohup "$0" ensure </dev/null >/dev/null 2>&1 &
+  nohup "$0" ensure "$context" </dev/null >/dev/null 2>&1 &
 }
 
 status() {
-  local current namespace="" state=checking checked_at=0 now interval=30 symbol
-  current=$(kubectl config current-context 2>/dev/null) || return 0
-  [[ -n "$current" ]] || return 0
-  context="$current"
-  state_file_for_context
+  local namespace="" state=checking checked_at=0 now interval=30 symbol
+  select_context || return 0
   namespace=$(kubectl config view --minify -o jsonpath='{.contexts[0].context.namespace}' 2>/dev/null) || true
 
   if [[ -r "$state_file" ]]; then
@@ -112,15 +107,9 @@ status() {
   now=$(date +%s)
   [[ "$state" == checking ]] && interval=90
   if (( now - checked_at >= interval )); then
-    # Show checking even when the cache cannot be updated. GB200 checks also
-    # repair its tunnel when the API cannot be reached.
     state=checking
     write_state checking 2>/dev/null || true
-    if [[ "$context" == vllm-gb200 ]]; then
-      nohup "$0" ensure </dev/null >/dev/null 2>&1 &
-    else
-      nohup "$0" probe "$context" </dev/null >/dev/null 2>&1 &
-    fi
+    nohup "$0" ensure "$context" </dev/null >/dev/null 2>&1 &
   fi
   case "$state" in
     up) symbol=◆ ;;
@@ -131,10 +120,10 @@ status() {
 }
 
 case "${1:-}" in
-  connect) connect ;;
-  ensure) ensure ;;
-  ensure-locked) ensure_locked ;;
-  probe) context="${2:-vllm-gb200}"; state_file_for_context; probe ;;
+  connect) select_context "${2:-}" || exit 0; connect ;;
+  ensure) select_context "${2:-}"; ensure ;;
+  ensure-locked) select_context "${2:-}"; ensure_locked ;;
+  probe) select_context "${2:-}"; probe ;;
   status) status ;;
-  *) printf 'usage: %s <connect|ensure|probe|status>\n' "$0" >&2; exit 2 ;;
+  *) printf 'usage: %s <connect|ensure|probe|status> [context]\n' "$0" >&2; exit 2 ;;
 esac

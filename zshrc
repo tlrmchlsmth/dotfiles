@@ -213,7 +213,22 @@ _init_kube_shell_context() {
   local shell_context ctx previous_context="${_KUBE_SHELL_CONTEXT:-}"
   shell_context=$(mktemp ~/.kube/shell.XXXXXX) || return 1
   ctx="$(<~/.kube/last-context 2>/dev/null)"
-  ctx="${ctx:-pirate}"
+  local default_context_file="${XDG_CONFIG_HOME:-$HOME/.config}/kctx/default-context"
+  if [[ -z "$ctx" && -r "$default_context_file" ]]; then
+    ctx="$(<"$default_context_file")"
+  fi
+  if [[ -z "$ctx" ]]; then
+    ctx="$(KUBECONFIG="${(j.:.)cfgs}" command kubectl config current-context 2>/dev/null)"
+  fi
+  if [[ -z "$ctx" ]]; then
+    rm -f -- "$shell_context"
+    typeset -g _KUBE_SHELL_CONTEXT=""
+    export KUBECONFIG="${(j.:.)cfgs}"
+    if [[ -n "$previous_context" ]]; then
+      rm -f -- "$previous_context"
+    fi
+    return 0
+  fi
 
   if ! printf 'apiVersion: v1\ncurrent-context: %s\nkind: Config\n' "$ctx" > "$shell_context" ||
      ! _save_kube_context "$ctx"; then
@@ -239,10 +254,8 @@ kctx() {
   local ctx="${1:-$(kubectl config get-contexts -o name | fzf --height=~50% --prompt='ctx> ')}"
   [[ -n "$ctx" ]] || return 1
   kubectl config use-context "$ctx" && _save_kube_context "$ctx" || return 1
-  if [[ "$ctx" == vllm-gb200 ]]; then
-    "$KCTX_STATUS_SCRIPT" connect ||
-      print -u2 "kctx: could not start the GB200 connectivity check"
-  fi
+  "$KCTX_STATUS_SCRIPT" connect "$ctx" ||
+    print -u2 "kctx: could not start the connectivity check"
   return 0
 }
 kns() {
