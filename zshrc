@@ -212,7 +212,7 @@ _init_kube_shell_context() {
 
   local shell_context ctx previous_context="${_KUBE_SHELL_CONTEXT:-}"
   shell_context=$(mktemp ~/.kube/shell.XXXXXX) || return 1
-  ctx="$(<~/.kube/last-context 2>/dev/null)"
+  ctx="${1:-$(<~/.kube/last-context 2>/dev/null)}"
   local default_context_file="${XDG_CONFIG_HOME:-$HOME/.config}/kctx/default-context"
   if [[ -z "$ctx" && -r "$default_context_file" ]]; then
     ctx="$(<"$default_context_file")"
@@ -342,9 +342,10 @@ kubeimport() {
   fi
 
   mv -f "$tmp" "$dest" || return
-  _save_kube_context "$name" || return
-  if ! kubectl config use-context "$name" &>/dev/null; then
-    echo "kubeimport: imported $name, but could not activate it in this shell" >&2
+  # Rebuild KUBECONFIG so this shell can see the newly imported file, and
+  # select it in a fresh per-shell context without changing the source config.
+  if ! _init_kube_shell_context "$name"; then
+    echo "kubeimport: saved $dest, but could not activate it; retry with: _init_kube_shell_context $name" >&2
     return 1
   fi
   echo "Imported $source_context as $name into $dest"

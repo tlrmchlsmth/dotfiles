@@ -90,7 +90,8 @@ if [[ "$(<"$test_home/.kube/last-context")" != friendly-name ]]; then
   print -u2 "expected imported context to be saved for new shells"
   exit 1
 fi
-if [[ "$(<"$test_home/.kubectl-used-context")" != friendly-name ]]; then
+if [[ "$(sed -n 's/^current-context: *//p' "$_KUBE_SHELL_CONTEXT")" != friendly-name ]] ||
+   [[ ":$KUBECONFIG:" != *":$expected:"* ]]; then
   print -u2 "expected imported context to be activated in the current shell"
   exit 1
 fi
