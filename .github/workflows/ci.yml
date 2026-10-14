@@ -26,6 +26,8 @@ jobs:
         run: bash install.sh
       - name: Test kcfg installer
         run: bash tests/install-kcfg.sh
+      - name: Test kcfg shell integration
+        run: zsh tests/kcfg-shell.zsh
       - name: Run tunnel tests
         run: bash tests/tunnel.sh
       - name: Verify key binaries
@@ -72,6 +74,8 @@ jobs:
         run: bash install.sh
       - name: Test kcfg installer
         run: bash tests/install-kcfg.sh
+      - name: Test kcfg shell integration
+        run: zsh tests/kcfg-shell.zsh
       - name: Run tunnel tests
         run: bash tests/tunnel.sh
       - name: Verify key binaries

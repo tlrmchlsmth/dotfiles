@@ -7,8 +7,7 @@ fi
 DOTFILES_DIR="${${(%):-%x}:A:h}"
 
 # --- PATH (early, so tools like starship/fzf are available below) ---
-export PATH=$HOME/.local/bin:$PATH
-export PATH="$HOME/go/bin:$PATH"
+export PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"
 
 # --- Missing commands (including commands called by aliases and functions) ---
 command_not_found_handler() {
