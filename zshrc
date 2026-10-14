@@ -5,7 +5,6 @@ fi
 
 # --- Dotfiles location (resolved from symlink) ---
 DOTFILES_DIR="${${(%):-%x}:A:h}"
-export KCTX_STATUS_SCRIPT="$DOTFILES_DIR/bin/kctx-connectivity"
 
 # --- PATH (early, so tools like starship/fzf are available below) ---
 export PATH=$HOME/.local/bin:$PATH
@@ -172,184 +171,23 @@ if [[ -n "$TMUX" ]]; then
     fi
 fi
 
-# --- Kubernetes: per-shell context isolation ---
-_save_kube_context() {
-  local ctx="$1"
-  local agent_context="$HOME/.kube/agent-context"
-  local last_context="$HOME/.kube/last-context"
-  local expected=$'apiVersion: v1\ncurrent-context: '"$ctx"$'\nkind: Config'
-
-  # New shells normally inherit the context already saved by kctx/kubeimport.
-  # Avoid replacing both files when they already contain the desired state.
-  if [[ -r "$agent_context" && -r "$last_context" ]] &&
-     [[ "$(<"$agent_context")" == "$expected" ]] &&
-     [[ "$(<"$last_context")" == "$ctx" ]]; then
-    return 0
-  fi
-
-  local tmp
-  tmp=$(mktemp "$HOME/.kube/.agent-context.XXXXXX") || return 1
-
-  chmod 600 "$tmp" || {
-    rm -f "$tmp"
-    return 1
-  }
-  print -r -- "$expected" > "$tmp" || {
-    rm -f "$tmp"
-    return 1
-  }
-  mv -f "$tmp" "$agent_context" && print -r -- "$ctx" > "$last_context"
-}
-
-_cleanup_kube_shell_context() {
-  [[ -n "${_KUBE_SHELL_CONTEXT:-}" ]] && rm -f -- "$_KUBE_SHELL_CONTEXT"
-}
-
-_init_kube_shell_context() {
-  setopt localoptions null_glob
-  local cfgs=(~/.kube/configs/*.yaml ~/.kube/configs/*.yml)
-  (( ${#cfgs} )) || return 0
-
-  local shell_context ctx previous_context="${_KUBE_SHELL_CONTEXT:-}"
-  shell_context=$(mktemp ~/.kube/shell.XXXXXX) || return 1
-  ctx="${1:-$(<~/.kube/last-context 2>/dev/null)}"
-  local default_context_file="${XDG_CONFIG_HOME:-$HOME/.config}/kctx/default-context"
-  if [[ -z "$ctx" && -r "$default_context_file" ]]; then
-    ctx="$(<"$default_context_file")"
-  fi
-  if [[ -z "$ctx" ]]; then
-    ctx="$(KUBECONFIG="${(j.:.)cfgs}" command kubectl config current-context 2>/dev/null)"
-  fi
-  if [[ -z "$ctx" ]]; then
-    rm -f -- "$shell_context"
-    typeset -g _KUBE_SHELL_CONTEXT=""
-    export KUBECONFIG="${(j.:.)cfgs}"
-    if [[ -n "$previous_context" ]]; then
-      rm -f -- "$previous_context"
-    fi
-    return 0
-  fi
-
-  if ! printf 'apiVersion: v1\ncurrent-context: %s\nkind: Config\n' "$ctx" > "$shell_context" ||
-     ! _save_kube_context "$ctx"; then
-    rm -f -- "$shell_context"
-    return 1
-  fi
-
-  typeset -g _KUBE_SHELL_CONTEXT="$shell_context"
-  export KUBECONFIG="$shell_context:${(j.:.)cfgs}"
-  if [[ -n "$previous_context" && "$previous_context" != "$shell_context" ]]; then
-    rm -f -- "$previous_context"
-  fi
-  autoload -Uz add-zsh-hook
-  add-zsh-hook zshexit _cleanup_kube_shell_context
-}
-
-if [[ -d ~/.kube/configs ]]; then
-  _init_kube_shell_context ||
-    print -u2 "warning: could not initialize isolated Kubernetes context"
+# --- Kubernetes: standalone kcfg CLI ---
+if (( $+commands[kcfg] )); then
+  eval "$(command kcfg init zsh)"
 fi
-
-kctx() {
-  local ctx="${1:-$(kubectl config get-contexts -o name | fzf --height=~50% --prompt='ctx> ')}"
-  [[ -n "$ctx" ]] || return 1
-  kubectl config use-context "$ctx" && _save_kube_context "$ctx" || return 1
-  "$KCTX_STATUS_SCRIPT" connect "$ctx" ||
-    print -u2 "kctx: could not start the connectivity check"
-  return 0
-}
-kns() {
-  local ns="${1:-$(kubectl get namespaces -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | fzf --height=~50% --prompt='ns> ')}"
-  [[ -n "$ns" ]] && kubectl config set-context --current --namespace="$ns"
-}
 
 _agent_with_kube_context() {
   local agent="$1"
   shift
-  setopt localoptions null_glob
-  local cfgs=(~/.kube/configs/*.yaml ~/.kube/configs/*.yml)
-  local agent_context="$HOME/.kube/agent-context"
-
-  if [[ -f "$agent_context" ]] && (( ${#cfgs} )); then
-    KUBECONFIG="$agent_context:${(j.:.)cfgs}" command "$agent" "$@"
+  if (( $+commands[kcfg] )); then
+    command kcfg exec "$agent" "$@"
   else
     command "$agent" "$@"
   fi
 }
-
 codex() { _agent_with_kube_context codex "$@" }
 claude() { _agent_with_kube_context claude "$@" }
 hermes() { _agent_with_kube_context hermes "$@" }
-
-kubeimport() {
-  local force=0
-  if [[ "$1" == "-f" ]]; then
-    force=1
-    shift
-  fi
-  if (( $# > 1 )); then
-    echo "usage: kubeimport [-f] [name]" >&2
-    return 2
-  fi
-
-  local name
-  if (( $# == 1 )); then
-    name="$1"
-  else
-    local current="$(kubectl config current-context 2>/dev/null)"
-    read "name?kubeconfig name [$current]: " || return
-    name="${name:-$current}"
-  fi
-  if [[ -z "$name" || "$name" == *[^A-Za-z0-9._-]* ]]; then
-    echo "kubeimport: name must contain only letters, numbers, '.', '_', or '-'" >&2
-    return 2
-  fi
-
-  local source_context="$(kubectl config current-context 2>/dev/null)"
-  if [[ -z "$source_context" ]]; then
-    echo "kubeimport: no current context to import" >&2
-    return 1
-  fi
-  local source_server="$(kubectl config view --minify --raw -o jsonpath='{.clusters[0].cluster.server}' 2>/dev/null)"
-
-  local dir="$HOME/.kube/configs"
-  local dest="$dir/$name.yaml"
-  mkdir -p "$dir" || return
-  chmod 700 "$HOME/.kube" "$dir" || return
-  if [[ -e "$dest" && $force -eq 0 ]]; then
-    local dest_context="$(KUBECONFIG="$dest" command kubectl config current-context 2>/dev/null)"
-    local dest_server="$(KUBECONFIG="$dest" command kubectl config view --minify --raw -o jsonpath='{.clusters[0].cluster.server}' 2>/dev/null)"
-    if [[ "$dest_context" != "$source_context" && "$dest_context" != "$name" ]] ||
-       [[ -z "$source_server" || "$dest_server" != "$source_server" ]]; then
-      echo "kubeimport: $dest contains context '$dest_context' (use -f to replace it)" >&2
-      return 1
-    fi
-  fi
-
-  local tmp=$(mktemp "$dir/.$name.XXXXXX") || return
-  chmod 600 "$tmp"
-  if ! kubectl config view --minify --flatten --raw > "$tmp" ||
-     ! KUBECONFIG="$tmp" command kubectl config current-context &>/dev/null; then
-    rm -f "$tmp"
-    echo "kubeimport: could not export the current context" >&2
-    return 1
-  fi
-  if [[ "$source_context" != "$name" ]] &&
-     ! KUBECONFIG="$tmp" command kubectl config rename-context "$source_context" "$name" &>/dev/null; then
-    rm -f "$tmp"
-    echo "kubeimport: could not rename context '$source_context' to '$name'" >&2
-    return 1
-  fi
-
-  mv -f "$tmp" "$dest" || return
-  # Rebuild KUBECONFIG so this shell can see the newly imported file, and
-  # select it in a fresh per-shell context without changing the source config.
-  if ! _init_kube_shell_context "$name"; then
-    echo "kubeimport: saved $dest, but could not activate it; retry with: _init_kube_shell_context $name" >&2
-    return 1
-  fi
-  echo "Imported $source_context as $name into $dest"
-}
 
 # --- Extra paths ---
 fpath+=~/.config/zsh/.zsh_functions
