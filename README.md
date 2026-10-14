@@ -23,19 +23,20 @@ bash install.sh [-g GITHUB_TOKEN] [-h HUGGINGFACE_TOKEN]
 - **safemake.sh** — `make` wrapper that caps `-j` parallelism
 - **tunnel.sh** — manages named SSH forwards; host and port settings stay in local config
 
-## Kubernetes connectivity hooks
+## Kubernetes
 
-The prompt checks each Kubernetes context in the background. When an API is
-unreachable, it runs an optional executable at `~/.config/kctx/connect-hook`
-with the context name and `restart` as arguments. The hook can repair a local
-VPN, proxy, or SSH tunnel and should return a nonzero status for contexts it
-does not handle. Set `KCTX_CONNECT_HOOK` to use another path. Keep context
-names, endpoints, and credentials in local configuration outside this repo.
+The installer builds [kcfg](https://github.com/tlrmchlsmth/kcfg) into
+`~/.local/bin` and loads its Zsh integration. It uses Go 1.23+ if available,
+or downloads a Go toolchain with SHA-256 verification. Set `KCFG_VERSION` to
+install a specific tag or commit instead of the latest version. To install or
+update only kcfg, run `bash scripts/install-kcfg.sh`.
 
-An optional `~/.config/kctx/default-context` file selects the initial context
-when no context has been saved; otherwise the first available current context
-from the managed kubeconfigs is used. `XDG_CONFIG_HOME` can change the local
-config directory.
+Use `kcfg import [name]` to import configs. The shell aliases `kctx [name]` and
+`kns [name]` select a context and namespace. `kcfg delete NAME` removes a managed
+config; `kcfg refresh NAME` logs in again with `oc`, or use
+`kcfg refresh NAME -- COMMAND ARGS...` for another credential refresh command.
+Existing `~/.kube/configs` files and local `~/.config/kctx` hooks are supported.
+The prompt uses `kcfg status` for background connectivity checks.
 
 ## Supported Platforms
 

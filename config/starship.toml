@@ -81,8 +81,8 @@ format = '[$context]($style)'
 style = '105'
 
 [custom.kube_connectivity]
-when = 'true'
-command = 'script="${KCTX_STATUS_SCRIPT:-$(dirname "$(dirname "$(realpath "${STARSHIP_CONFIG:-$HOME/.config/starship.toml}")")")/bin/kctx-connectivity}"; "$script" status'
+when = 'command -v kcfg >/dev/null 2>&1'
+command = 'kcfg status'
 format = '[$output]($style)'
 style = '105'
 

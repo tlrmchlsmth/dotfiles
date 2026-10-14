@@ -24,10 +24,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run install.sh
         run: bash install.sh
-      - name: Run zsh tests
-        run: zsh tests/kubeimport.zsh
-      - name: Run kctx connectivity tests
-        run: bash tests/kctx-connectivity.sh
+      - name: Test kcfg installer
+        run: bash tests/install-kcfg.sh
+      - name: Test kcfg shell integration
+        run: zsh tests/kcfg-shell.zsh
       - name: Run tunnel tests
         run: bash tests/tunnel.sh
       - name: Verify key binaries
@@ -38,6 +38,9 @@ jobs:
           fzf --version
           starship --version
           zsh --version
+          kcfg --help
+          alias kctx
+          alias kns
       - name: Verify nvim starts without errors
         run: |
           output=$(nvim --headless -c 'qa!' 2>&1)
@@ -69,10 +72,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run install.sh
         run: bash install.sh
-      - name: Run zsh tests
-        run: zsh tests/kubeimport.zsh
-      - name: Run kctx connectivity tests
-        run: bash tests/kctx-connectivity.sh
+      - name: Test kcfg installer
+        run: bash tests/install-kcfg.sh
+      - name: Test kcfg shell integration
+        run: zsh tests/kcfg-shell.zsh
       - name: Run tunnel tests
         run: bash tests/tunnel.sh
       - name: Verify key binaries
@@ -83,6 +86,9 @@ jobs:
           fzf --version
           starship --version
           zsh --version
+          kcfg --help
+          alias kctx
+          alias kns
       - name: Verify nvim starts without errors
         run: |
           output=$(nvim --headless -c 'qa!' 2>&1)
