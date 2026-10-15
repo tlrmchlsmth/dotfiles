@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import plistlib
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -60,6 +61,33 @@ class LocalAITests(unittest.TestCase):
         with patch.object(service.os, 'execve') as execute, self.assertRaises(SystemExit):
             self.invoke('serve')
         execute.assert_not_called()
+
+    def test_sudo_hosts_uses_invoking_users_hostname(self):
+        user_home = self.root / 'user'
+        override = user_home / '.config/local-ai.local.json'
+        override.parent.mkdir(parents=True)
+        override.write_text(json.dumps({'hostname': 'private-ai.localhost'}))
+        hosts = self.root / 'hosts'
+        hosts.write_text('127.0.0.1 localhost\n')
+
+        def local_path(value):
+            return hosts if value == '/etc/hosts' else Path(value)
+
+        with patch.object(service, 'Path', side_effect=local_path) as paths, patch.object(service.os, 'geteuid', return_value=0), patch.dict(os.environ, {'SUDO_UID': '501'}), patch.object(service.pwd, 'getpwuid', return_value=SimpleNamespace(pw_dir=str(user_home))) as lookup, patch('sys.argv', ['local-ai', 'hosts']):
+            paths.home.return_value = self.root / 'root'
+            service.main()
+            service.main()  # Re-running must preserve an existing loopback alias.
+        lookup.assert_called_with(501)
+        self.assertEqual(hosts.read_text().count('127.0.0.1 private-ai.localhost'), 1)
+        self.assertNotIn('ai.localhost\n', hosts.read_text().replace('private-ai.localhost\n', ''))
+
+    def test_normal_settings_ignore_sudo_environment(self):
+        override = self.root / '.config/local-ai.local.json'
+        override.parent.mkdir()
+        override.write_text(json.dumps({'hostname': 'user-ai.localhost'}))
+        with patch.object(service.Path, 'home', return_value=self.root), patch.object(service.os, 'geteuid', return_value=0), patch.dict(os.environ, {'SUDO_UID': '501'}), patch.object(service.pwd, 'getpwuid') as lookup:
+            self.assertEqual(service.settings()['hostname'], 'user-ai.localhost')
+        lookup.assert_not_called()
 
 
 if __name__ == '__main__':

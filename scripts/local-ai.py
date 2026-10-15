@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import platform
 import plistlib
+import pwd
 import re
 import shutil
 import subprocess
@@ -16,9 +17,12 @@ REPO = Path(__file__).resolve().parents[1]
 LABEL = 'com.tysmith.local-ai'
 
 
-def settings():
+def settings(*, invoking_user=False):
     cfg = json.loads((REPO / 'config/local-ai.json').read_text())
-    override = Path.home() / '.config/local-ai.local.json'
+    user_home = Path.home()
+    if invoking_user and os.geteuid() == 0 and 'SUDO_UID' in os.environ:
+        user_home = Path(pwd.getpwuid(int(os.environ['SUDO_UID'])).pw_dir)
+    override = user_home / '.config/local-ai.local.json'
     if override.exists():
         cfg.update(json.loads(override.read_text()))
     return cfg
@@ -52,7 +56,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=['install', 'serve', 'start', 'stop', 'restart', 'status', 'url', 'home', 'hosts'])
     args = parser.parse_args()
-    cfg = settings()
+    cfg = settings(invoking_user=args.action == 'hosts')
     root = home(cfg)
     url = f"http://{cfg['hostname']}:{cfg['port']}/v1"
     if args.action == 'home':
