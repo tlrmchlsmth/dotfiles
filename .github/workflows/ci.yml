@@ -28,6 +28,8 @@ jobs:
         run: bash tests/install-kcfg.sh
       - name: Test kcfg shell integration
         run: zsh tests/kcfg-shell.zsh
+      - name: Test local AI service configuration
+        run: python3 tests/test-local-ai.py
       - name: Run tunnel tests
         run: bash tests/tunnel.sh
       - name: Verify key binaries
@@ -76,6 +78,8 @@ jobs:
         run: bash tests/install-kcfg.sh
       - name: Test kcfg shell integration
         run: zsh tests/kcfg-shell.zsh
+      - name: Test local AI service configuration
+        run: python3 tests/test-local-ai.py
       - name: Run tunnel tests
         run: bash tests/tunnel.sh
       - name: Verify key binaries
