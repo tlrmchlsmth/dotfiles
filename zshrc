@@ -228,3 +228,8 @@ autoload -U add-zsh-hook
 add-zsh-hook chpwd _auto_venv
 _auto_venv  # Run on shell start
 [[ -n "$ZSH_PROFILE" ]] && zprof
+
+# OpenObserve MCP: optional local verified CA bundle
+if [[ -r "$HOME/.local/share/openobserve/env.sh" ]]; then
+    source "$HOME/.local/share/openobserve/env.sh"
+fi
