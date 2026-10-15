@@ -1,0 +1,13 @@
+{
+  "model": "mlx-community/gemma-4-26B-A4B-it-4bit",
+  "revision": "0d77464eeb233a2da68ebf9d7dc4edaac7db956d",
+  "alias": "local-coder",
+  "hostname": "ai.localhost",
+  "port": 55348,
+  "context_length": 262144,
+  "max_num_seqs": 4,
+  "max_num_batched_tokens": 2048,
+  "gpu_memory_utilization": 0.75,
+  "tool_call_parser": "gemma4",
+  "reasoning_parser": "gemma4"
+}
