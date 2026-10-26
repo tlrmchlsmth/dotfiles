@@ -63,6 +63,9 @@ local-ai start
 local-ai restart
 ```
 
+Re-running the installer downloads the configured model before restarting the
+service. Existing model caches are retained.
+
 The LaunchAgent starts at login and restarts after crashes. `stop` unloads it
 until the next login or explicit `start`. Logs are in the runtime's
 `artifacts/launchd.log`. Serving uses pinned cached weights with Hugging Face

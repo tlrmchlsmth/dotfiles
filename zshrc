@@ -9,14 +9,6 @@ DOTFILES_DIR="${${(%):-%x}:A:h}"
 # --- PATH (early, so tools like starship/fzf are available below) ---
 export PATH="$HOME/.local/bin:$HOME/go/bin:$PATH"
 
-# --- Missing commands (including commands called by aliases and functions) ---
-command_not_found_handler() {
-  print -u2 -r -- "zsh: command not found: $1"
-  print -u2 -r -- "Check spelling, install the missing command, or add its directory to PATH."
-  print -u2 -r -- "Aliases and functions can exist even when a command they call is missing."
-  return 127
-}
-
 # --- Prompt ---
 if command -v starship &>/dev/null; then
   eval "$(starship init zsh)"

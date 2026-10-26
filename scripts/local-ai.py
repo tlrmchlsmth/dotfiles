@@ -11,6 +11,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 import urllib.request
 
 REPO = Path(__file__).resolve().parents[1]
@@ -139,6 +140,13 @@ def main():
         if args.action == 'stop':
             print('Stopped until next login or local-ai start')
             return
+        # bootout can return before launchd removes the job. Wait for teardown
+        # so restart cannot mistake the outgoing service for a running one.
+        deadline = time.monotonic() + 30
+        while run_launchctl('print', target, check=False).returncode == 0:
+            if time.monotonic() >= deadline:
+                raise SystemExit('Service is still stopping; retry local-ai start after shutdown completes')
+            time.sleep(0.1)
     if not agent.exists():
         raise SystemExit('Run local-ai install first')
     if run_launchctl('print', target, check=False).returncode == 0:
