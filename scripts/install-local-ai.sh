@@ -28,5 +28,5 @@ PY
 mkdir -p "$HOME/.local/bin"
 ln -sfn "$repo/bin/local-ai" "$HOME/.local/bin/local-ai"
 python3 "$repo/scripts/local-ai.py" install
-python3 "$repo/scripts/local-ai.py" start
+python3 "$repo/scripts/local-ai.py" restart
 echo 'Optional memorable hostname: sudo python3 '"$repo/scripts/local-ai.py"' hosts'

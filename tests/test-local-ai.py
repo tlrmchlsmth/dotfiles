@@ -62,6 +62,27 @@ class LocalAITests(unittest.TestCase):
             self.invoke('serve')
         execute.assert_not_called()
 
+    def test_restart_waits_for_outgoing_job_before_bootstrap(self):
+        agent = self.root / 'Library/LaunchAgents/com.tysmith.local-ai.plist'
+        agent.parent.mkdir(parents=True)
+        agent.touch()
+        results = iter([0, 1, 1])
+        calls = []
+
+        def launchctl(*args, **kwargs):
+            calls.append(args[0])
+            return SimpleNamespace(returncode=next(results) if args[0] == 'print' else 0)
+
+        with patch.object(service.Path, 'home', return_value=self.root), patch.object(service, 'run_launchctl', side_effect=launchctl), patch.object(service.time, 'sleep') as sleep:
+            self.invoke('restart')
+        self.assertEqual(calls, ['bootout', 'print', 'print', 'print', 'enable', 'bootstrap'])
+        sleep.assert_called_once_with(0.1)
+
+    def test_restart_does_not_bootstrap_while_job_is_stopping(self):
+        with patch.object(service, 'run_launchctl', return_value=SimpleNamespace(returncode=0)) as launchctl, patch.object(service.time, 'monotonic', side_effect=[0, 31]), self.assertRaisesRegex(SystemExit, 'still stopping'):
+            self.invoke('restart')
+        self.assertNotIn('bootstrap', [call.args[0] for call in launchctl.call_args_list])
+
     def test_sudo_hosts_uses_invoking_users_hostname(self):
         user_home = self.root / 'user'
         override = user_home / '.config/local-ai.local.json'
